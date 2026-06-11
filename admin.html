@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <style>
+        body { font-family: Arial; padding: 40px; max-width: 500px; margin: auto; }
+        input, textarea { width: 100%; padding: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    
+    <div id="loginArea">
+        <h2>Login</h2>
+        <input type="password" id="password" placeholder="Enter password">
+        <button onclick="login()">Login</button>
+        <p id="loginError" class="error"></p>
+    </div>
+    
+    <div id="adminArea" style="display:none;">
+        <h2>Edit Content</h2>
+        <label>Title:</label>
+        <input type="text" id="title">
+        <label>Message:</label>
+        <textarea id="message" rows="4"></textarea>
+        <button onclick="updateContent()">Save Changes</button>
+        <p id="updateStatus" class="success"></p>
+        
+        <hr>
+        <p><a href="/" target="_blank">View your site</a></p>
+        <button onclick="logout()">Logout</button>
+    </div>
+    
+    <script>
+        let currentPassword = '';
+        
+        function login() {
+            const password = document.getElementById('password').value;
+            fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentPassword = password;
+                    document.getElementById('loginArea').style.display = 'none';
+                    document.getElementById('adminArea').style.display = 'block';
+                    loadContent();
+                } else {
+                    document.getElementById('loginError').innerText = 'Wrong password';
+                }
+            });
+        }
+        
+        function loadContent() {
+            fetch('/api/content')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('title').value = data.title;
+                    document.getElementById('message').value = data.message;
+                });
+        }
+        
+        function updateContent() {
+            const title = document.getElementById('title').value;
+            const message = document.getElementById('message').value;
+            
+            fetch('/api/admin/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    password: currentPassword,
+                    title: title,
+                    message: message
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('updateStatus').innerText = 'Saved!';
+                    setTimeout(() => {
+                        document.getElementById('updateStatus').innerText = '';
+                    }, 2000);
+                } else {
+                    alert('Login again');
+                    logout();
+                }
+            });
+        }
+        
+        function logout() {
+            document.getElementById('loginArea').style.display = 'block';
+            document.getElementById('adminArea').style.display = 'none';
+            document.getElementById('password').value = '';
+            currentPassword = '';
+        }
+    </script>
+</body>
+</html>
