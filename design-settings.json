@@ -1,0 +1,20 @@
+{
+  "primaryColor": "#3498db",
+  "backgroundColor": "#f4f4f4",
+  "textColor": "#333333",
+  "headingColor": "#2c3e50",
+  "layoutStyle": "modern",
+  "showNavbar": true,
+  "showFooter": true,
+  "showHeroSection": true,
+  "showCardsSection": true,
+  "card1Title": "Stock Management",
+  "card1Text": "Track inventory, manage stock in/out, and get low stock alerts.",
+  "card2Title": "Admin Panel",
+  "card2Text": "Change website content, update messages, and manage settings.",
+  "card3Title": "Design Editor",
+  "card3Text": "Change colors, layout, and customize your website design.",
+  "customCSS": "",
+  "customHeader": "",
+  "customFooter": ""
+}
