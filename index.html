@@ -1,121 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Stock Inventory System</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; }
-        h1 { background: #2c3e50; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
-        .stats { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-        .stat-card { background: white; padding: 20px; border-radius: 10px; flex: 1; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .stat-number { font-size: 32px; font-weight: bold; color: #3498db; }
-        table { width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #34495e; color: white; }
-        .low-stock { background: #ffe6e6; color: red; font-weight: bold; }
-        .nav-links { text-align: center; margin-top: 20px; }
-        .nav-links a { display: inline-block; margin: 5px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; }
-        .last-updated { text-align: center; margin-top: 10px; color: #666; font-size: 12px; }
-    </style>
+<title>Dashboard</title>
 </head>
 <body>
-    <div class="container">
-        <h1>📦 Stock Inventory System</h1>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="totalItems">0</div>
-                <div>Total Products</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalStock">0</div>
-                <div>Total Units</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="lowStockCount">0</div>
-                <div>Low Stock</div>
-            </div>
-        </div>
-        
-        <div style="overflow-x: auto;">
-            <table id="stockTable">
-                <thead>
-                    <tr>
-                        <th>Product Name</th>
-                        <th>Stock Quantity</th>
-                        <th>Minimum Alert</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="stockTableBody">
-                    <tr><td colspan="4" style="text-align:center">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="last-updated" id="lastUpdated"></div>
-        
-        <div class="nav-links">
-            <a href="/stock.html">📦 Manage Stock</a>
-            <a href="/admin.html">🔧 Admin Panel</a>
-            <a href="/design-admin.html">🎨 Design Editor</a>
-        </div>
-    </div>
 
-    <script>
-        let stockData = [];
-        
-        async function loadStock() {
-            try {
-                const response = await fetch('/api/stock/get');
-                const data = await response.json();
-                if(data.success && data.products) {
-                    stockData = data.products;
-                    displayTable();
-                    updateStats();
-                    document.getElementById('lastUpdated').innerHTML = `Last updated: ${new Date().toLocaleString()}`;
-                }
-            } catch(error) {
-                console.error('Error loading stock:', error);
-                document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:red">Error loading stock data</td></tr>';
-            }
-        }
-        
-        function displayTable() {
-            const tbody = document.getElementById('stockTableBody');
-            tbody.innerHTML = '';
-            
-            if(stockData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No products in stock. Go to Stock Management to add products.</td></tr>';
-                return;
-            }
-            
-            stockData.forEach(p => {
-                const row = tbody.insertRow();
-                const isLow = p.stock <= p.minStock;
-                if(isLow) row.className = 'low-stock';
-                
-                row.insertCell(0).innerHTML = p.name;
-                row.insertCell(1).innerHTML = `<strong>${p.stock}</strong>`;
-                row.insertCell(2).innerHTML = p.minStock;
-                row.insertCell(3).innerHTML = isLow ? '⚠️ LOW STOCK' : '✅ In Stock';
-            });
-        }
-        
-        function updateStats() {
-            document.getElementById('totalItems').innerHTML = stockData.length;
-            const totalStock = stockData.reduce((sum, p) => sum + p.stock, 0);
-            document.getElementById('totalStock').innerHTML = totalStock;
-            const lowStock = stockData.filter(p => p.stock <= p.minStock).length;
-            document.getElementById('lowStockCount').innerHTML = lowStock;
-        }
-        
-        // Load immediately
-        loadStock();
-        
-        // Refresh every 15 seconds
-        setInterval(loadStock, 15000);
-    </script>
+<h1>Stock Dashboard</h1>
+
+<div id="stats"></div>
+
+<script>
+async function load() {
+  const res = await fetch("/api/dashboard");
+  const data = await res.json();
+
+  document.getElementById("stats").innerHTML = `
+    <p>Total Products: ${data.totalProducts}</p>
+    <p>Total Stock: ${data.totalStock}</p>
+    <p>Low Stock Items: ${data.lowStockCount}</p>
+  `;
+}
+
+load();
+</script>
+
 </body>
 </html>
