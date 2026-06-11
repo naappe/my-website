@@ -1,22 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>My Website</title>
-    <style>
-        body { font-family: Arial; padding: 40px; text-align: center; }
-    </style>
-</head>
-<body>
-    <h1 id="title">Loading...</h1>
-    <p id="message">Loading...</p>
-    
-    <script>
-        fetch('/api/content')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('title').innerHTML = data.title;
-                document.getElementById('message').innerHTML = data.message;
-            });
-    </script>
-</body>
-</html>
+<!-- Find this in index.html and edit -->
+<style>
+    body { 
+        font-family: Arial; 
+        padding: 40px; 
+        text-align: center;
+        background: black;      ← Add this for dark background
+        color: white;           ← Add this for white text
+    }
+    h1 { color: blue; }         ← Change to any color
+</style>
