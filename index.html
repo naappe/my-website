@@ -8,8 +8,6 @@
         button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
         .error { color: red; }
         .success { color: green; }
-        .stay-logged { margin: 10px 0; display: flex; align-items: center; gap: 10px; }
-        .stay-logged input { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -18,12 +16,6 @@
     <div id="loginArea">
         <h2>Login</h2>
         <input type="password" id="password" placeholder="Enter password">
-        
-        <div class="stay-logged">
-            <input type="checkbox" id="rememberMe" checked>
-            <label>Stay logged in (no password on refresh)</label>
-        </div>
-        
         <button onclick="login()">Login</button>
         <p id="loginError" class="error"></p>
     </div>
@@ -44,38 +36,16 @@
     </div>
     
     <script>
-        let currentPassword = '';
-        
-        // Check if already logged in on page load
-        window.onload = function() {
-            const savedLogin = localStorage.getItem('adminLoggedIn');
-            const savedPassword = localStorage.getItem('adminPassword');
-            
-            if(savedLogin === 'true' && savedPassword) {
-                // Try auto-login
-                fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: savedPassword })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.success) {
-                        currentPassword = savedPassword;
-                        document.getElementById('loginArea').style.display = 'none';
-                        document.getElementById('adminArea').style.display = 'block';
-                        loadContent();
-                    } else {
-                        localStorage.removeItem('adminLoggedIn');
-                        localStorage.removeItem('adminPassword');
-                    }
-                });
-            }
-        };
+        // When page loads, check if already logged in
+        if(localStorage.getItem('loggedIn') === 'yes') {
+            // Auto login without asking
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('adminArea').style.display = 'block';
+            loadContent();
+        }
         
         function login() {
             const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
             
             fetch('/api/admin/login', {
                 method: 'POST',
@@ -85,13 +55,8 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    currentPassword = password;
-                    
-                    // Save if "Remember Me" is checked
-                    if(rememberMe) {
-                        localStorage.setItem('adminLoggedIn', 'true');
-                        localStorage.setItem('adminPassword', password);
-                    }
+                    // Save login status
+                    localStorage.setItem('loggedIn', 'yes');
                     
                     document.getElementById('loginArea').style.display = 'none';
                     document.getElementById('adminArea').style.display = 'block';
@@ -119,7 +84,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    password: currentPassword,
+                    password: 'admin123',
                     title: title,
                     message: message
                 })
@@ -131,22 +96,15 @@
                     setTimeout(() => {
                         document.getElementById('updateStatus').innerText = '';
                     }, 2000);
-                } else {
-                    alert('Login again');
-                    logout();
                 }
             });
         }
         
         function logout() {
-            // Clear saved login
-            localStorage.removeItem('adminLoggedIn');
-            localStorage.removeItem('adminPassword');
-            
+            localStorage.removeItem('loggedIn');
             document.getElementById('loginArea').style.display = 'block';
             document.getElementById('adminArea').style.display = 'none';
             document.getElementById('password').value = '';
-            currentPassword = '';
         }
     </script>
 </body>
