@@ -1,103 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel</title>
+    <title>Admin Login</title>
     <style>
-        body { font-family: Arial; padding: 40px; max-width: 500px; margin: auto; }
-        input, textarea { width: 100%; padding: 8px; margin: 10px 0; }
-        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
-        .error { color: red; }
-        .success { color: green; }
+        body {
+            font-family: Arial;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 350px;
+            text-align: center;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Admin Panel</h1>
-    
-    <div id="loginArea">
-        <h2>Login</h2>
+    <div class="login-box">
+        <h2>🔐 Admin Login</h2>
         <input type="password" id="password" placeholder="Enter password">
         <button onclick="login()">Login</button>
-        <p id="loginError" class="error"></p>
-    </div>
-    
-    <div id="adminArea" style="display:none;">
-        <h2>Edit Content</h2>
-        <label>Title:</label>
-        <input type="text" id="title">
-        <label>Message:</label>
-        <textarea id="message" rows="4"></textarea>
-        <button onclick="updateContent()">Save Changes</button>
-        <p id="updateStatus" class="success"></p>
-        
-        <hr>
-        <p><a href="/" target="_blank">View your site</a></p>
-        <button onclick="logout()">Logout</button>
+        <div id="errorMsg" class="error"></div>
     </div>
     
     <script>
-        let currentPassword = '';
+        // Check if already logged in
+        if(localStorage.getItem('adminLoggedIn') === 'yes') {
+            window.location.href = '/admin-panel.html';
+        }
         
-        function login() {
+        async function login() {
             const password = document.getElementById('password').value;
-            fetch('/api/admin/login', {
+            
+            const response = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password: password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    currentPassword = password;
-                    document.getElementById('loginArea').style.display = 'none';
-                    document.getElementById('adminArea').style.display = 'block';
-                    loadContent();
-                } else {
-                    document.getElementById('loginError').innerText = 'Wrong password';
-                }
             });
-        }
-        
-        function loadContent() {
-            fetch('/api/content')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('title').value = data.title;
-                    document.getElementById('message').value = data.message;
-                });
-        }
-        
-        function updateContent() {
-            const title = document.getElementById('title').value;
-            const message = document.getElementById('message').value;
             
-            fetch('/api/admin/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    password: currentPassword,
-                    title: title,
-                    message: message
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('updateStatus').innerText = 'Saved!';
-                    setTimeout(() => {
-                        document.getElementById('updateStatus').innerText = '';
-                    }, 2000);
-                } else {
-                    alert('Login again');
-                    logout();
-                }
-            });
-        }
-        
-        function logout() {
-            document.getElementById('loginArea').style.display = 'block';
-            document.getElementById('adminArea').style.display = 'none';
-            document.getElementById('password').value = '';
-            currentPassword = '';
+            const data = await response.json();
+            
+            if(data.success) {
+                localStorage.setItem('adminLoggedIn', 'yes');
+                window.location.href = '/admin-panel.html';
+            } else {
+                document.getElementById('errorMsg').innerText = 'Wrong password';
+            }
         }
     </script>
 </body>
