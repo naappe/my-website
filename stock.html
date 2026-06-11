@@ -99,12 +99,25 @@
             background: #27ae60;
         }
         
+        .btn-success:hover {
+            background: #219a52;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+        
         table {
             width: 100%;
             background: white;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-collapse: collapse;
         }
         
         th, td {
@@ -135,6 +148,24 @@
             color: white;
             text-decoration: none;
             border-radius: 5px;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            animation: fadeOut 2s ease-in-out;
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; display: none; }
         }
         
         @media (max-width: 768px) {
@@ -171,6 +202,7 @@
             </div>
         </div>
         
+        <!-- Add Product -->
         <div class="form-box">
             <h2>➕ Add New Product</h2>
             <input type="text" id="productName" placeholder="Product Name">
@@ -179,6 +211,7 @@
             <button onclick="addProduct()">Add Product</button>
         </div>
         
+        <!-- Stock In/Out -->
         <div class="form-box">
             <h2>📥 Stock IN / 📤 Stock OUT</h2>
             <select id="selectProduct">
@@ -192,22 +225,40 @@
             <button onclick="updateStock()">Update Stock</button>
         </div>
         
+        <!-- CSV Import/Export -->
         <div class="form-box">
-            <h2>📊 Export Data</h2>
-            <button onclick="exportToCSV()" class="btn-success">📥 Download Stock CSV</button>
+            <h2>📊 CSV Import / Export</h2>
+            <input type="file" id="csvFile" accept=".csv">
+            <button onclick="importFromCSV()" class="btn-success">📤 Import from CSV</button>
+            <button onclick="exportToCSV()" class="btn-success">📥 Export to CSV</button>
+            <button onclick="downloadSampleCSV()" class="btn-warning">📄 Download Sample CSV</button>
+            <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                CSV format: Product Name,Stock Quantity,Minimum Alert<br>
+                Example: Apple,50,5
+            </p>
         </div>
         
+        <!-- Stock Table -->
         <h2>📋 Current Stock</h2>
-        <table id="stockTable">
-            <thead>
-                <tr><th>Product</th><th>Stock</th><th>Min Alert</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody id="stockTableBody"></tbody>
-        </table>
+        <div style="overflow-x: auto;">
+            <table id="stockTable">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Stock</th>
+                        <th>Min Alert</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTableBody"></tbody>
+            </table>
+        </div>
         
         <div class="nav-links">
             <a href="/">← Back to Home</a>
             <a href="/admin.html">🔧 Admin Panel</a>
+            <a href="/design-admin.html">🎨 Design Editor</a>
         </div>
     </div>
     
@@ -219,23 +270,29 @@
                 const response = await fetch('/api/stock/get');
                 const data = await response.json();
                 if(data.success) {
-                    products = data.products;
+                    products = data.products || [];
                     renderTable();
                     updateStats();
                     updateProductSelect();
                 }
             } catch(e) {
-                console.log('Error loading data');
+                console.log('Error loading data:', e);
+                showNotification('Error loading data');
             }
         }
         
         async function saveData() {
-            await fetch('/api/stock/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ products: products })
-            });
-            loadData();
+            try {
+                await fetch('/api/stock/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ products: products })
+                });
+                loadData();
+            } catch(e) {
+                console.log('Error saving data:', e);
+                showNotification('Error saving data');
+            }
         }
         
         function addProduct() {
@@ -243,7 +300,11 @@
             const stock = parseInt(document.getElementById('initialStock').value);
             const minStock = parseInt(document.getElementById('minStock').value);
             
-            if(!name) { alert('Enter product name'); return; }
+            if(!name) { 
+                alert('Enter product name'); 
+                return; 
+            }
+            
             if(products.find(p => p.name.toLowerCase() === name.toLowerCase())) {
                 alert('Product already exists');
                 return;
@@ -252,8 +313,8 @@
             products.push({
                 id: Date.now(),
                 name: name,
-                stock: stock || 0,
-                minStock: minStock || 5,
+                stock: isNaN(stock) ? 0 : stock,
+                minStock: isNaN(minStock) ? 5 : minStock,
                 history: []
             });
             
@@ -270,8 +331,15 @@
             const quantity = parseInt(document.getElementById('quantity').value);
             
             const product = products.find(p => p.id === productId);
-            if(!product) { alert('Select product'); return; }
-            if(!quantity || quantity <= 0) { alert('Enter valid quantity'); return; }
+            if(!product) { 
+                alert('Select product'); 
+                return; 
+            }
+            
+            if(isNaN(quantity) || quantity <= 0) { 
+                alert('Enter valid quantity'); 
+                return; 
+            }
             
             if(type === 'in') {
                 product.stock += quantity;
@@ -285,12 +353,11 @@
                 showNotification(`-${quantity} ${product.name}`);
             }
             
-            product.history = product.history || [];
+            if(!product.history) product.history = [];
             product.history.unshift({
                 date: new Date().toLocaleString(),
                 type: type,
                 quantity: quantity,
-                oldStock: product.stock - (type === 'in' ? quantity : -quantity),
                 newStock: product.stock
             });
             
@@ -301,9 +368,10 @@
         }
         
         function deleteProduct(id) {
-            if(!confirm('Delete this product?')) return;
+            if(!confirm('Delete this product? All history will be lost.')) return;
             products = products.filter(p => p.id !== id);
             saveData();
+            showNotification('Product deleted');
         }
         
         function exportToCSV() {
@@ -325,15 +393,97 @@
             a.click();
             URL.revokeObjectURL(url);
             
-            showNotification('CSV downloaded');
+            showNotification('CSV exported');
+        }
+        
+        function importFromCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if(!file) {
+                alert('Please select a CSV file first');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.split('\n');
+                let imported = 0;
+                let errors = 0;
+                
+                for(let i = 1; i < lines.length; i++) {
+                    if(!lines[i].trim()) continue;
+                    
+                    const parts = lines[i].split(',');
+                    if(parts.length < 2) {
+                        errors++;
+                        continue;
+                    }
+                    
+                    const name = parts[0].replace(/["']/g, '').trim();
+                    const stock = parseInt(parts[1]);
+                    const minStock = parseInt(parts[2]) || 5;
+                    
+                    if(name && !isNaN(stock)) {
+                        const existing = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+                        if(existing) {
+                            existing.stock = stock;
+                            existing.minStock = minStock;
+                        } else {
+                            products.push({
+                                id: Date.now() + i,
+                                name: name,
+                                stock: stock,
+                                minStock: minStock,
+                                history: []
+                            });
+                        }
+                        imported++;
+                    } else {
+                        errors++;
+                    }
+                }
+                
+                saveData();
+                alert(`Imported ${imported} products.\nErrors: ${errors}`);
+                document.getElementById('csvFile').value = '';
+                showNotification(`Imported ${imported} products`);
+            };
+            reader.readAsText(file);
+        }
+        
+        function downloadSampleCSV() {
+            const sampleCSV = `Product Name,Stock Quantity,Minimum Alert
+Apple,50,5
+Banana,30,3
+Orange,25,5
+Mango,15,2
+Grapes,40,4
+Watermelon,10,5
+Pineapple,8,3
+Strawberry,60,10
+Blueberry,20,4
+Raspberry,12,3`;
+            
+            const blob = new Blob([sampleCSV], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sample-stock.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Sample CSV downloaded');
         }
         
         function showNotification(msg) {
             const notif = document.createElement('div');
+            notif.className = 'notification';
             notif.textContent = msg;
-            notif.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#27ae60; color:white; padding:10px 20px; border-radius:5px; z-index:1000';
             document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 2000);
+            setTimeout(() => {
+                notif.remove();
+            }, 2000);
         }
         
         function renderTable() {
@@ -341,7 +491,7 @@
             tbody.innerHTML = '';
             
             if(products.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No products yet. Add one above!</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No products yet. Add one above or import CSV!</td></tr>';
                 return;
             }
             
@@ -374,7 +524,10 @@
             });
         }
         
+        // Load data on page load
         loadData();
+        
+        // Refresh every 10 seconds
         setInterval(loadData, 10000);
     </script>
 </body>
