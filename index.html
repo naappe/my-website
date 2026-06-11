@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Website</title>
+</head>
+<body>
+    <h1>My Website</h1>
+    <p id="result">Loading...</p>
+    
+    <script>
+        fetch('/api/message')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = data.message;
+            });
+    </script>
+</body>
+</html>
