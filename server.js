@@ -7,8 +7,8 @@ app.use(express.json());
 
 // ========== CONTENT API ==========
 let siteContent = {
-  title: "Stock Management System",
-  message: "Welcome to your inventory manager"
+  title: "My Website",
+  message: "Hello from backend!"
 };
 
 app.get('/api/content', (req, res) => {
@@ -36,8 +36,8 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
-// ========== STOCK API ==========
-const STOCK_FILE = 'stock-data.json';
+// ========== STOCK API (using stock.json) ==========
+const STOCK_FILE = 'stock.json';
 
 let products = [];
 
@@ -49,6 +49,7 @@ function loadStock() {
     }
   } catch(e) {
     console.log('No existing stock data');
+    products = [];
   }
 }
 
@@ -68,8 +69,56 @@ app.post('/api/stock/save', (req, res) => {
   res.json({ success: true });
 });
 
+// ========== DESIGN API ==========
+const DESIGN_FILE = 'design-settings.json';
+
+let designSettings = {
+  primaryColor: "#3498db",
+  backgroundColor: "#f4f4f4",
+  textColor: "#333333",
+  headingColor: "#2c3e50",
+  layoutStyle: "modern",
+  showNavbar: true,
+  showFooter: true,
+  showHeroSection: true,
+  showCardsSection: true
+};
+
+function loadDesign() {
+  try {
+    if (fs.existsSync(DESIGN_FILE)) {
+      const data = fs.readFileSync(DESIGN_FILE, 'utf8');
+      const saved = JSON.parse(data);
+      Object.assign(designSettings, saved);
+    }
+  } catch(e) {}
+}
+
+function saveDesign() {
+  fs.writeFileSync(DESIGN_FILE, JSON.stringify(designSettings, null, 2));
+}
+
+loadDesign();
+
+app.get('/api/design/get', (req, res) => {
+  res.json({ success: true, settings: designSettings });
+});
+
+app.post('/api/design/save', (req, res) => {
+  const { password, settings } = req.body;
+  if (password === 'admin123') {
+    Object.assign(designSettings, settings);
+    saveDesign();
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
+});
+
 // ========== START SERVER ==========
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Stock file: ${STOCK_FILE}`);
+  console.log(`Products loaded: ${products.length}`);
 });
