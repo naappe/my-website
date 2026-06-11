@@ -1,94 +1,193 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title id="pageTitle">My Website</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style id="dynamicStyles">
-        /* Styles will be injected here */
+    <title>Stock System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            flex: 1;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #34495e;
+            color: white;
+        }
+        
+        .low-stock {
+            background: #ffe6e6;
+            color: red;
+            font-weight: bold;
+        }
+        
+        .nav-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .nav-links a {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            th, td {
+                padding: 8px;
+                font-size: 12px;
+            }
+            .stats {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
-<body id="appBody">
-    <div id="customHeader"></div>
-    <nav id="navbar" style="display:none">...</nav>
+<body>
     <div class="container">
-        <div id="heroSection" class="hero">
-            <h1 id="title">Loading...</h1>
-            <p id="message">Loading...</p>
+        <h1 id="title">Loading...</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalItems">0</div>
+                <div>Total Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalStock">0</div>
+                <div>Total Units</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lowStockCount">0</div>
+                <div>Low Stock Items</div>
+            </div>
         </div>
-        <div id="cardsSection" class="cards">
-            <!-- Cards loaded dynamically -->
+        
+        <table>
+            <thead>
+                <tr><th>Product</th><th>Stock</th><th>Status</th></tr>
+            </thead>
+            <tbody id="stockTable"></tbody>
+        </table>
+        
+        <div class="nav-links">
+            <a href="/admin-login.html">🔐 Admin Login</a>
         </div>
     </div>
-    <div id="customFooter"></div>
     
     <script>
-        let designSettings = {};
-        let contentData = {};
+        let products = [];
         
-        // Load both design and content
-        async function loadEverything() {
-            const [designRes, contentRes] = await Promise.all([
-                fetch('/api/design/get'),
-                fetch('/api/content')
-            ]);
-            const design = await designRes.json();
-            const content = await contentRes.json();
-            designSettings = design.settings;
-            contentData = content;
-            applyDesign();
-        }
-        
-        function applyDesign() {
-            // Apply colors
-            document.body.style.backgroundColor = designSettings.backgroundColor;
-            document.body.style.color = designSettings.textColor;
-            
-            // Generate dynamic CSS
-            let styleText = `
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: ${designSettings.backgroundColor}; color: ${designSettings.textColor}; }
-                .navbar { background: ${designSettings.primaryColor}; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-                .navbar a { color: white; text-decoration: none; margin-left: 1rem; }
-                .container { max-width: 1200px; margin: auto; padding: 2rem; }
-                .hero { background: white; padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
-                .hero h1 { color: ${designSettings.headingColor}; }
-                .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-                .card { background: white; padding: 2rem; border-radius: 15px; text-align: center; }
-                .card button { background: ${designSettings.primaryColor}; color: white; border: none; padding: 0.5rem 1rem; border-radius: 25px; cursor: pointer; }
-                .footer { background: ${designSettings.headingColor}; color: white; text-align: center; padding: 2rem; margin-top: 2rem; }
-            `;
-            
-            // Layout style overrides
-            if(designSettings.layoutStyle === 'dark') {
-                styleText += `.hero { background: #2c3e50; color: white; } .hero h1 { color: white; } .card { background: #34495e; color: white; }`;
+        async function loadData() {
+            try {
+                const response = await fetch('/api/stock/get');
+                const data = await response.json();
+                if(data.success) {
+                    products = data.products;
+                    renderTable();
+                    updateStats();
+                }
+            } catch(e) {
+                console.log('Error loading data');
             }
             
-            styleText += designSettings.customCSS || '';
-            document.getElementById('dynamicStyles').innerHTML = styleText;
-            
-            // Show/hide sections
-            document.getElementById('navbar').style.display = designSettings.showNavbar ? 'flex' : 'none';
-            document.getElementById('heroSection').style.display = designSettings.showHeroSection ? 'block' : 'none';
-            document.getElementById('cardsSection').style.display = designSettings.showCardsSection ? 'grid' : 'none';
-            document.getElementById('customHeader').innerHTML = designSettings.customHeader || '';
-            document.getElementById('customFooter').innerHTML = designSettings.customFooter || '';
-            
-            // Set content
-            document.getElementById('title').innerHTML = contentData.title;
-            document.getElementById('message').innerHTML = contentData.message;
-            document.getElementById('pageTitle').innerHTML = contentData.title;
-            
-            // Render cards
-            const cardsHtml = `
-                <div class="card"><div class="card-icon">📦</div><h3>${designSettings.card1Title}</h3><p>${designSettings.card1Text}</p><button onclick="location.href='/stock.html'">Go →</button></div>
-                <div class="card"><div class="card-icon">🔧</div><h3>${designSettings.card2Title}</h3><p>${designSettings.card2Text}</p><button onclick="location.href='/admin.html'">Admin →</button></div>
-                <div class="card"><div class="card-icon">🎨</div><h3>${designSettings.card3Title}</h3><p>${designSettings.card3Text}</p><button onclick="location.href='/design-admin.html'">Edit Design →</button></div>
-            `;
-            document.getElementById('cardsSection').innerHTML = cardsHtml;
+            // Load title
+            try {
+                const contentRes = await fetch('/api/content');
+                const content = await contentRes.json();
+                document.getElementById('title').innerHTML = content.title;
+            } catch(e) {}
         }
         
-        loadEverything();
+        function renderTable() {
+            const tbody = document.getElementById('stockTable');
+            tbody.innerHTML = '';
+            
+            if(products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">No products yet</td></tr>';
+                return;
+            }
+            
+            products.forEach(p => {
+                const row = tbody.insertRow();
+                const isLow = p.stock <= p.minStock;
+                if(isLow) row.className = 'low-stock';
+                
+                row.insertCell(0).innerHTML = p.name;
+                row.insertCell(1).innerHTML = `<strong>${p.stock}</strong>`;
+                row.insertCell(2).innerHTML = isLow ? '⚠️ LOW STOCK' : '✅ In Stock';
+            });
+        }
+        
+        function updateStats() {
+            document.getElementById('totalItems').innerHTML = products.length;
+            const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+            document.getElementById('totalStock').innerHTML = totalStock;
+            const lowStock = products.filter(p => p.stock <= p.minStock).length;
+            document.getElementById('lowStockCount').innerHTML = lowStock;
+        }
+        
+        loadData();
+        // Refresh every 30 seconds
+        setInterval(loadData, 30000);
     </script>
 </body>
 </html>
