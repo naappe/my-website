@@ -1,118 +1,173 @@
-const express = require("express");
-const fs = require("fs");
-const cors = require("cors");
-
+const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const fs = require('fs');
+const path = require('path');
 
-app.use(cors());
+app.use(express.static('.'));
 app.use(express.json());
-app.use(express.static(__dirname));
 
-const DB_PRODUCTS = "./data.json";
-const DB_STOCK = "./stock.json";
-
-// ---------- HELPERS ----------
-const read = (file) => JSON.parse(fs.readFileSync(file, "utf-8"));
-const write = (file, data) =>
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-
-// ---------- INIT SAFETY ----------
-if (!fs.existsSync(DB_PRODUCTS)) write(DB_PRODUCTS, []);
-if (!fs.existsSync(DB_STOCK)) write(DB_STOCK, []);
-
-// ---------- PRODUCTS ----------
-app.get("/api/products", (req, res) => {
-  res.json(read(DB_PRODUCTS));
+// ========== SERVE CSV FILE (Built-in, no external file needed) ==========
+app.get('/data.csv', (req, res) => {
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'inline');
+    res.send(`Product Name,Stock Quantity,Minimum Alert
+Apple,50,5
+Banana,30,3
+Orange,25,5
+Mango,15,2
+Grapes,40,4
+Watermelon,10,5
+Pineapple,8,3
+Strawberry,60,10
+Blueberry,20,4
+Raspberry,12,3
+Kiwi,45,5
+Papaya,22,4
+Guava,35,3
+Lychee,18,2
+Dragon Fruit,12,3`);
 });
 
-app.post("/api/products", (req, res) => {
-  const products = read(DB_PRODUCTS);
+// ========== CONTENT API ==========
+let siteContent = {
+  title: "Stock Management System",
+  message: "Welcome to your inventory manager"
+};
 
-  const newItem = {
-    id: Date.now(),
-    name: req.body.name,
-    price: Number(req.body.price || 0),
-    stock: Number(req.body.stock || 0),
-    minStock: Number(req.body.minStock || 5),
-    category: req.body.category || "General"
-  };
-
-  products.push(newItem);
-  write(DB_PRODUCTS, products);
-
-  res.json(newItem);
+app.get('/api/content', (req, res) => {
+  res.json(siteContent);
 });
 
-app.put("/api/products/:id", (req, res) => {
-  let products = read(DB_PRODUCTS);
-
-  products = products.map(p =>
-    p.id == req.params.id ? { ...p, ...req.body } : p
-  );
-
-  write(DB_PRODUCTS, products);
-  res.json({ success: true });
+app.post('/api/admin/update', (req, res) => {
+  const { password, title, message } = req.body;
+  if (password === 'admin123') {
+    if (title) siteContent.title = title;
+    if (message) siteContent.message = message;
+    res.json({ success: true, content: siteContent });
+  } else {
+    res.json({ success: false });
+  }
 });
 
-app.delete("/api/products/:id", (req, res) => {
-  let products = read(DB_PRODUCTS);
-  products = products.filter(p => p.id != req.params.id);
-
-  write(DB_PRODUCTS, products);
-  res.json({ success: true });
+// ========== LOGIN API ==========
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password === 'admin123') {
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
 });
 
-// ---------- POS / SALE ----------
-app.post("/api/sale", (req, res) => {
-  let products = read(DB_PRODUCTS);
-  let stockLog = read(DB_STOCK);
+// ========== STOCK API ==========
+const STOCK_FILE = 'stock.json';
 
-  const cart = req.body.items;
+let products = [];
 
-  cart.forEach(item => {
-    const product = products.find(p => p.id === item.id);
-
-    if (product) {
-      product.stock -= item.qty;
-
-      stockLog.push({
-        id: Date.now(),
-        productId: product.id,
-        name: product.name,
-        qty: -item.qty,
-        type: "SALE",
-        date: new Date().toISOString()
-      });
+function loadStock() {
+  try {
+    if (fs.existsSync(STOCK_FILE)) {
+      const data = fs.readFileSync(STOCK_FILE, 'utf8');
+      products = JSON.parse(data);
+      if (!Array.isArray(products)) products = [];
+    } else {
+      products = [];
+      saveStock();
     }
-  });
+  } catch(e) {
+    console.log('No existing stock data, creating new');
+    products = [];
+  }
+}
 
-  write(DB_PRODUCTS, products);
-  write(DB_STOCK, stockLog);
+function saveStock() {
+  fs.writeFileSync(STOCK_FILE, JSON.stringify(products, null, 2));
+}
 
+loadStock();
+
+app.get('/api/stock/get', (req, res) => {
+  res.json({ success: true, products: products });
+});
+
+app.post('/api/stock/save', (req, res) => {
+  products = req.body.products;
+  saveStock();
   res.json({ success: true });
 });
 
-// ---------- DASHBOARD ----------
-app.get("/api/dashboard", (req, res) => {
-  const products = read(DB_PRODUCTS);
-  const stockLog = read(DB_STOCK);
+// ========== DESIGN API ==========
+const DESIGN_FILE = 'design-settings.json';
 
-  const totalProducts = products.length;
-  const totalStock = products.reduce((a, b) => a + b.stock, 0);
-  const lowStock = products.filter(p => p.stock <= p.minStock);
+let designSettings = {
+  primaryColor: "#3498db",
+  backgroundColor: "#f4f4f4",
+  textColor: "#333333",
+  headingColor: "#2c3e50",
+  layoutStyle: "modern",
+  showNavbar: true,
+  showFooter: true,
+  showHeroSection: true,
+  showCardsSection: true,
+  card1Title: "Stock Management",
+  card1Text: "Track inventory, manage stock in/out, and get low stock alerts.",
+  card2Title: "Admin Panel",
+  card2Text: "Change website content, update messages, and manage settings.",
+  card3Title: "Design Editor",
+  card3Text: "Change colors, layout, and customize your website design.",
+  customCSS: "",
+  customHeader: "",
+  customFooter: ""
+};
 
-  const salesCount = stockLog.filter(s => s.type === "SALE").length;
+function loadDesign() {
+  try {
+    if (fs.existsSync(DESIGN_FILE)) {
+      const data = fs.readFileSync(DESIGN_FILE, 'utf8');
+      const saved = JSON.parse(data);
+      Object.assign(designSettings, saved);
+    }
+  } catch(e) {
+    console.log('No design settings, using defaults');
+  }
+}
 
+function saveDesign() {
+  fs.writeFileSync(DESIGN_FILE, JSON.stringify(designSettings, null, 2));
+}
+
+loadDesign();
+
+app.get('/api/design/get', (req, res) => {
+  res.json({ success: true, settings: designSettings });
+});
+
+app.post('/api/design/save', (req, res) => {
+  const { password, settings } = req.body;
+  if (password === 'admin123') {
+    Object.assign(designSettings, settings);
+    saveDesign();
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
+});
+
+// ========== HELPER ENDPOINT ==========
+app.get('/api/status', (req, res) => {
   res.json({
-    totalProducts,
-    totalStock,
-    lowStock,
-    salesCount
+    status: 'running',
+    products: products.length,
+    timestamp: new Date().toISOString()
   });
 });
 
-// ---------- START ----------
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+// ========== START SERVER ==========
+const port = 3000;
+app.listen(port, () => {
+  console.log(`✅ Server running on port ${port}`);
+  console.log(`📦 Stock file: ${STOCK_FILE}`);
+  console.log(`📊 Products loaded: ${products.length}`);
+  console.log(`🎨 Design file: ${DESIGN_FILE}`);
+  console.log(`📁 CSV available at: /data.csv`);
 });
