@@ -36,7 +36,7 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
-// ========== STOCK API (using stock.json) ==========
+// ========== STOCK API ==========
 const STOCK_FILE = 'stock.json';
 
 let products = [];
@@ -46,6 +46,9 @@ function loadStock() {
     if (fs.existsSync(STOCK_FILE)) {
       const data = fs.readFileSync(STOCK_FILE, 'utf8');
       products = JSON.parse(data);
+      if (!Array.isArray(products)) products = [];
+    } else {
+      products = [];
     }
   } catch(e) {
     console.log('No existing stock data');
@@ -81,7 +84,16 @@ let designSettings = {
   showNavbar: true,
   showFooter: true,
   showHeroSection: true,
-  showCardsSection: true
+  showCardsSection: true,
+  card1Title: "Stock Management",
+  card1Text: "Track inventory, manage stock in/out, and get low stock alerts.",
+  card2Title: "Admin Panel",
+  card2Text: "Change website content, update messages, and manage settings.",
+  card3Title: "Design Editor",
+  card3Text: "Change colors, layout, and customize your website design.",
+  customCSS: "",
+  customHeader: "",
+  customFooter: ""
 };
 
 function loadDesign() {
@@ -91,7 +103,9 @@ function loadDesign() {
       const saved = JSON.parse(data);
       Object.assign(designSettings, saved);
     }
-  } catch(e) {}
+  } catch(e) {
+    console.log('No design settings');
+  }
 }
 
 function saveDesign() {
@@ -119,6 +133,4 @@ app.post('/api/design/save', (req, res) => {
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Stock file: ${STOCK_FILE}`);
-  console.log(`Products loaded: ${products.length}`);
 });
