@@ -78,6 +78,80 @@ app.post('/api/stock/save', (req, res) => {
 
 // ========== END STOCK API ==========
 
+// ========== DESIGN SETTINGS (add this) ==========
+
+// File to save design settings
+const DESIGN_FILE = 'design-settings.json';
+
+// Default design settings
+let designSettings = {
+  // Colors
+  primaryColor: "#3498db",
+  backgroundColor: "#f4f4f4",
+  textColor: "#333333",
+  headingColor: "#2c3e50",
+  
+  // Layout
+  showNavbar: true,
+  showFooter: true,
+  layoutStyle: "modern", // modern, classic, dark
+  
+  // Custom HTML (admin can add anything)
+  customHeader: "",
+  customFooter: "",
+  customCSS: "",
+  
+  // Homepage sections
+  showHeroSection: true,
+  showCardsSection: true,
+  
+  // Custom card titles and content
+  card1Title: "Stock Management",
+  card1Text: "Track inventory, manage stock in/out, and get low stock alerts.",
+  card2Title: "Admin Panel", 
+  card2Text: "Change website content, update messages, and manage settings.",
+  card3Title: "Analytics",
+  card3Text: "View reports and insights about your inventory and activity."
+};
+
+// Load design settings
+function loadDesignSettings() {
+  try {
+    if (fs.existsSync(DESIGN_FILE)) {
+      const data = fs.readFileSync(DESIGN_FILE, 'utf8');
+      const saved = JSON.parse(data);
+      Object.assign(designSettings, saved);
+    }
+  } catch(e) {
+    console.log('No existing design settings');
+  }
+}
+
+function saveDesignSettings() {
+  fs.writeFileSync(DESIGN_FILE, JSON.stringify(designSettings, null, 2));
+}
+
+loadDesignSettings();
+
+// Get design settings
+app.get('/api/design/get', (req, res) => {
+  res.json({ success: true, settings: designSettings });
+});
+
+// Save design settings (admin only)
+app.post('/api/design/save', (req, res) => {
+  const { password, settings } = req.body;
+  if (password === 'admin123') {
+    Object.assign(designSettings, settings);
+    saveDesignSettings();
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
+});
+
+// ========== END DESIGN API ==========
+
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
