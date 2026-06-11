@@ -1,14 +1,25 @@
 const express = require('express');
 const app = express();
 const fs = require('fs');
+const path = require('path');
 
 app.use(express.static('.'));
 app.use(express.json());
 
+// ========== SERVE CSV FILE ==========
+app.get('/data.csv', (req, res) => {
+    const csvPath = path.join(__dirname, 'data.csv');
+    if (fs.existsSync(csvPath)) {
+        res.sendFile(csvPath);
+    } else {
+        res.status(404).send('data.csv not found. Create it on GitHub.');
+    }
+});
+
 // ========== CONTENT API ==========
 let siteContent = {
-  title: "My Website",
-  message: "Hello from backend!"
+  title: "Stock Management System",
+  message: "Welcome to your inventory manager"
 };
 
 app.get('/api/content', (req, res) => {
@@ -133,4 +144,6 @@ app.post('/api/design/save', (req, res) => {
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Stock file: ${STOCK_FILE}`);
+  console.log(`Products loaded: ${products.length}`);
 });
