@@ -1,111 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel</title>
-    <style>
-        body { font-family: Arial; padding: 40px; max-width: 500px; margin: auto; }
-        input, textarea { width: 100%; padding: 8px; margin: 10px 0; }
-        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
-        .error { color: red; }
-        .success { color: green; }
+    <meta charset="UTF-8">
+    <title id="pageTitle">My Website</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style id="dynamicStyles">
+        /* Styles will be injected here */
     </style>
 </head>
-<body>
-    <h1>Admin Panel</h1>
-    
-    <div id="loginArea">
-        <h2>Login</h2>
-        <input type="password" id="password" placeholder="Enter password">
-        <button onclick="login()">Login</button>
-        <p id="loginError" class="error"></p>
+<body id="appBody">
+    <div id="customHeader"></div>
+    <nav id="navbar" style="display:none">...</nav>
+    <div class="container">
+        <div id="heroSection" class="hero">
+            <h1 id="title">Loading...</h1>
+            <p id="message">Loading...</p>
+        </div>
+        <div id="cardsSection" class="cards">
+            <!-- Cards loaded dynamically -->
+        </div>
     </div>
-    
-    <div id="adminArea" style="display:none;">
-        <h2>Edit Content</h2>
-        <label>Title:</label>
-        <input type="text" id="title">
-        <label>Message:</label>
-        <textarea id="message" rows="4"></textarea>
-        <button onclick="updateContent()">Save Changes</button>
-        <p id="updateStatus" class="success"></p>
-        
-        <hr>
-        <p><a href="/" target="_blank">View your site</a></p>
-        <p><a href="/stock.html" target="_blank">Stock Management</a></p>
-        <button onclick="logout()" style="background:red">Logout</button>
-    </div>
+    <div id="customFooter"></div>
     
     <script>
-        // When page loads, check if already logged in
-        if(localStorage.getItem('loggedIn') === 'yes') {
-            // Auto login without asking
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('adminArea').style.display = 'block';
-            loadContent();
+        let designSettings = {};
+        let contentData = {};
+        
+        // Load both design and content
+        async function loadEverything() {
+            const [designRes, contentRes] = await Promise.all([
+                fetch('/api/design/get'),
+                fetch('/api/content')
+            ]);
+            const design = await designRes.json();
+            const content = await contentRes.json();
+            designSettings = design.settings;
+            contentData = content;
+            applyDesign();
         }
         
-        function login() {
-            const password = document.getElementById('password').value;
+        function applyDesign() {
+            // Apply colors
+            document.body.style.backgroundColor = designSettings.backgroundColor;
+            document.body.style.color = designSettings.textColor;
             
-            fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    // Save login status
-                    localStorage.setItem('loggedIn', 'yes');
-                    
-                    document.getElementById('loginArea').style.display = 'none';
-                    document.getElementById('adminArea').style.display = 'block';
-                    loadContent();
-                } else {
-                    document.getElementById('loginError').innerText = 'Wrong password';
-                }
-            });
-        }
-        
-        function loadContent() {
-            fetch('/api/content')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('title').value = data.title;
-                    document.getElementById('message').value = data.message;
-                });
-        }
-        
-        function updateContent() {
-            const title = document.getElementById('title').value;
-            const message = document.getElementById('message').value;
+            // Generate dynamic CSS
+            let styleText = `
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; background: ${designSettings.backgroundColor}; color: ${designSettings.textColor}; }
+                .navbar { background: ${designSettings.primaryColor}; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+                .navbar a { color: white; text-decoration: none; margin-left: 1rem; }
+                .container { max-width: 1200px; margin: auto; padding: 2rem; }
+                .hero { background: white; padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
+                .hero h1 { color: ${designSettings.headingColor}; }
+                .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+                .card { background: white; padding: 2rem; border-radius: 15px; text-align: center; }
+                .card button { background: ${designSettings.primaryColor}; color: white; border: none; padding: 0.5rem 1rem; border-radius: 25px; cursor: pointer; }
+                .footer { background: ${designSettings.headingColor}; color: white; text-align: center; padding: 2rem; margin-top: 2rem; }
+            `;
             
-            fetch('/api/admin/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    password: 'admin123',
-                    title: title,
-                    message: message
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('updateStatus').innerText = 'Saved!';
-                    setTimeout(() => {
-                        document.getElementById('updateStatus').innerText = '';
-                    }, 2000);
-                }
-            });
+            // Layout style overrides
+            if(designSettings.layoutStyle === 'dark') {
+                styleText += `.hero { background: #2c3e50; color: white; } .hero h1 { color: white; } .card { background: #34495e; color: white; }`;
+            }
+            
+            styleText += designSettings.customCSS || '';
+            document.getElementById('dynamicStyles').innerHTML = styleText;
+            
+            // Show/hide sections
+            document.getElementById('navbar').style.display = designSettings.showNavbar ? 'flex' : 'none';
+            document.getElementById('heroSection').style.display = designSettings.showHeroSection ? 'block' : 'none';
+            document.getElementById('cardsSection').style.display = designSettings.showCardsSection ? 'grid' : 'none';
+            document.getElementById('customHeader').innerHTML = designSettings.customHeader || '';
+            document.getElementById('customFooter').innerHTML = designSettings.customFooter || '';
+            
+            // Set content
+            document.getElementById('title').innerHTML = contentData.title;
+            document.getElementById('message').innerHTML = contentData.message;
+            document.getElementById('pageTitle').innerHTML = contentData.title;
+            
+            // Render cards
+            const cardsHtml = `
+                <div class="card"><div class="card-icon">📦</div><h3>${designSettings.card1Title}</h3><p>${designSettings.card1Text}</p><button onclick="location.href='/stock.html'">Go →</button></div>
+                <div class="card"><div class="card-icon">🔧</div><h3>${designSettings.card2Title}</h3><p>${designSettings.card2Text}</p><button onclick="location.href='/admin.html'">Admin →</button></div>
+                <div class="card"><div class="card-icon">🎨</div><h3>${designSettings.card3Title}</h3><p>${designSettings.card3Text}</p><button onclick="location.href='/design-admin.html'">Edit Design →</button></div>
+            `;
+            document.getElementById('cardsSection').innerHTML = cardsHtml;
         }
         
-        function logout() {
-            localStorage.removeItem('loggedIn');
-            document.getElementById('loginArea').style.display = 'block';
-            document.getElementById('adminArea').style.display = 'none';
-            document.getElementById('password').value = '';
-        }
+        loadEverything();
     </script>
 </body>
 </html>
