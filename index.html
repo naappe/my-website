@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Stock Data</title>
+    <title>Stock Inventory System</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
@@ -21,7 +21,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📦 Stock Inventory</h1>
+        <h1>📦 Stock Inventory System</h1>
         
         <div class="stats">
             <div class="stat-card">
@@ -38,77 +38,69 @@
             </div>
         </div>
         
-        <div id="stockTable">Loading...</div>
+        <div style="overflow-x: auto;">
+            <table id="stockTable">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Stock Quantity</th>
+                        <th>Minimum Alert</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTableBody">
+                    <tr><td colspan="4" style="text-align:center">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
         
         <div class="last-updated" id="lastUpdated"></div>
         
         <div class="nav-links">
+            <a href="/stock.html">📦 Manage Stock</a>
             <a href="/admin.html">🔧 Admin Panel</a>
-            <a href="/stock.html">📦 Stock Management</a>
-            <a href="/data.csv">📄 View CSV Raw</a>
+            <a href="/design-admin.html">🎨 Design Editor</a>
         </div>
     </div>
 
     <script>
         let stockData = [];
         
-        async function loadCSV() {
+        async function loadStock() {
             try {
-                const response = await fetch('/data.csv?t=' + Date.now());
-                const csvText = await response.text();
-                parseCSV(csvText);
-                document.getElementById('lastUpdated').innerHTML = `Last updated: ${new Date().toLocaleString()}`;
+                const response = await fetch('/api/stock/get');
+                const data = await response.json();
+                if(data.success && data.products) {
+                    stockData = data.products;
+                    displayTable();
+                    updateStats();
+                    document.getElementById('lastUpdated').innerHTML = `Last updated: ${new Date().toLocaleString()}`;
+                }
             } catch(error) {
-                document.getElementById('stockTable').innerHTML = '<p style="color:red">Error loading stock data</p>';
+                console.error('Error loading stock:', error);
+                document.getElementById('stockTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:red">Error loading stock data</td></tr>';
             }
-        }
-        
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',');
-            
-            stockData = [];
-            
-            for(let i = 1; i < lines.length; i++) {
-                if(!lines[i].trim()) continue;
-                const parts = lines[i].split(',');
-                
-                const product = {
-                    name: parts[0].replace(/["']/g, '').trim(),
-                    stock: parseInt(parts[1]) || 0,
-                    minStock: parseInt(parts[2]) || 5
-                };
-                
-                stockData.push(product);
-            }
-            
-            displayTable();
-            updateStats();
         }
         
         function displayTable() {
+            const tbody = document.getElementById('stockTableBody');
+            tbody.innerHTML = '';
+            
             if(stockData.length === 0) {
-                document.getElementById('stockTable').innerHTML = '<p>No stock data available</p>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No products in stock. Go to Stock Management to add products.</td></tr>';
                 return;
             }
             
-            let html = '<table><thead><tr>';
-            html += '<th>Product Name</th><th>Stock Quantity</th><th>Minimum Alert</th><th>Status</th>';
-            html += '</tr></thead><tbody>';
-            
             stockData.forEach(p => {
+                const row = tbody.insertRow();
                 const isLow = p.stock <= p.minStock;
-                const rowClass = isLow ? 'low-stock' : '';
-                html += `<tr class="${rowClass}">`;
-                html += `<td>${p.name}</td>`;
-                html += `<td><strong>${p.stock}</strong></td>`;
-                html += `<td>${p.minStock}</td>`;
-                html += `<td>${isLow ? '⚠️ LOW STOCK' : '✅ In Stock'}</td>`;
-                html += '</tr>';
+                if(isLow) row.className = 'low-stock';
+                
+                row.insertCell(0).innerHTML = p.name;
+                row.insertCell(1).innerHTML = `<strong>${p.stock}</strong>`;
+                row.insertCell(2).innerHTML = p.minStock;
+                row.insertCell(3).innerHTML = isLow ? '⚠️ LOW STOCK' : '✅ In Stock';
             });
-            
-            html += '</tbody></table>';
-            document.getElementById('stockTable').innerHTML = html;
         }
         
         function updateStats() {
@@ -119,11 +111,11 @@
             document.getElementById('lowStockCount').innerHTML = lowStock;
         }
         
-        // Load CSV immediately
-        loadCSV();
+        // Load immediately
+        loadStock();
         
-        // Refresh every 30 seconds
-        setInterval(loadCSV, 30000);
+        // Refresh every 15 seconds
+        setInterval(loadStock, 15000);
     </script>
 </body>
 </html>
