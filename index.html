@@ -1,11 +1,294 @@
-<!-- Find this in index.html and edit -->
-<style>
-    body { 
-        font-family: Arial; 
-        padding: 40px; 
-        text-align: center;
-        background: black;      ← Add this for dark background
-        color: white;           ← Add this for white text
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Management System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        
+        /* Header */
+        h1 { background: #2c3e50; color: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; }
+        
+        /* Forms */
+        .form-box { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-box h2 { margin-bottom: 15px; color: #2c3e50; }
+        input, select, button { padding: 10px; margin: 5px; font-size: 16px; }
+        input { width: 200px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2980b9; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; }
+        
+        /* Stock Table */
+        table { width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #34495e; color: white; }
+        tr:hover { background: #f5f5f5; }
+        .low-stock { background: #ffe6e6; color: red; font-weight: bold; }
+        
+        /* Stock badges */
+        .stock-in { color: green; font-weight: bold; }
+        .stock-out { color: red; font-weight: bold; }
+        
+        /* Stats */
+        .stats { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; flex: 1; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 32px; font-weight: bold; color: #3498db; }
+        
+        @media (max-width: 768px) {
+            input, select { width: 100%; margin: 5px 0; }
+            .stats { flex-direction: column; }
+            table { font-size: 12px; }
+            th, td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📦 Stock Management System</h1>
+    
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="totalItems">0</div>
+            <div>Total Products</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalStock">0</div>
+            <div>Total Units in Stock</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="lowStockCount">0</div>
+            <div>Low Stock Items</div>
+        </div>
+    </div>
+    
+    <!-- Add New Product -->
+    <div class="form-box">
+        <h2>➕ Add New Product</h2>
+        <input type="text" id="productName" placeholder="Product Name">
+        <input type="number" id="initialStock" placeholder="Initial Stock" value="0">
+        <input type="number" id="minStock" placeholder="Minimum Stock Alert" value="5">
+        <button onclick="addProduct()">Add Product</button>
+    </div>
+    
+    <!-- Stock In / Stock Out -->
+    <div class="form-box">
+        <h2>📥 Stock In / 📤 Stock Out</h2>
+        <select id="selectProduct">
+            <option value="">Select Product</option>
+        </select>
+        <select id="transactionType">
+            <option value="in">📥 Stock IN (Add)</option>
+            <option value="out">📤 Stock OUT (Remove)</option>
+        </select>
+        <input type="number" id="quantity" placeholder="Quantity">
+        <input type="text" id="note" placeholder="Note (optional)">
+        <button onclick="updateStock()">Update Stock</button>
+    </div>
+    
+    <!-- Stock Table -->
+    <h2>📋 Current Stock</h2>
+    <table id="stockTable">
+        <thead>
+            <tr><th>Product</th><th>Stock</th><th>Min Alert</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="stockTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    // Data structure
+    let products = [];
+    
+    // Load data from backend
+    async function loadData() {
+        try {
+            const response = await fetch('/api/stock/get');
+            const data = await response.json();
+            if (data.success && data.products) {
+                products = data.products;
+                renderTable();
+                updateStats();
+                updateProductSelect();
+            }
+        } catch(e) {
+            console.log('Loading from localStorage');
+            const saved = localStorage.getItem('stockData');
+            if(saved) products = JSON.parse(saved);
+            renderTable();
+            updateStats();
+            updateProductSelect();
+        }
     }
-    h1 { color: blue; }         ← Change to any color
-</style>
+    
+    // Save to backend
+    async function saveData() {
+        try {
+            await fetch('/api/stock/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ products: products })
+            });
+        } catch(e) {
+            localStorage.setItem('stockData', JSON.stringify(products));
+        }
+    }
+    
+    // Add product
+    function addProduct() {
+        const name = document.getElementById('productName').value.trim();
+        const stock = parseInt(document.getElementById('initialStock').value);
+        const minStock = parseInt(document.getElementById('minStock').value);
+        
+        if(!name) { alert('Enter product name'); return; }
+        if(isNaN(stock)) { alert('Enter valid stock'); return; }
+        
+        const existing = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+        if(existing) { alert('Product already exists!'); return; }
+        
+        products.push({
+            id: Date.now(),
+            name: name,
+            stock: stock,
+            minStock: minStock,
+            history: []
+        });
+        
+        saveData();
+        renderTable();
+        updateStats();
+        updateProductSelect();
+        
+        document.getElementById('productName').value = '';
+        document.getElementById('initialStock').value = '0';
+        document.getElementById('minStock').value = '5';
+    }
+    
+    // Update stock (IN/OUT)
+    function updateStock() {
+        const productId = parseInt(document.getElementById('selectProduct').value);
+        const type = document.getElementById('transactionType').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const note = document.getElementById('note').value || 'No note';
+        
+        if(!productId) { alert('Select product'); return; }
+        if(isNaN(quantity) || quantity <= 0) { alert('Enter valid quantity'); return; }
+        
+        const product = products.find(p => p.id === productId);
+        if(!product) { alert('Product not found'); return; }
+        
+        const oldStock = product.stock;
+        
+        if(type === 'in') {
+            product.stock += quantity;
+        } else {
+            if(product.stock < quantity) {
+                alert(`Not enough stock! Available: ${product.stock}`);
+                return;
+            }
+            product.stock -= quantity;
+        }
+        
+        // Add to history
+        product.history.unshift({
+            date: new Date().toLocaleString(),
+            type: type,
+            quantity: quantity,
+            oldStock: oldStock,
+            newStock: product.stock,
+            note: note
+        });
+        
+        // Keep only last 50 records
+        if(product.history.length > 50) product.history.pop();
+        
+        saveData();
+        renderTable();
+        updateStats();
+        
+        document.getElementById('quantity').value = '';
+        document.getElementById('note').value = '';
+        showNotification(`${type === 'in' ? 'Added' : 'Removed'} ${quantity} units to ${product.name}`);
+    }
+    
+    // Show notification
+    function showNotification(msg) {
+        const notif = document.createElement('div');
+        notif.textContent = msg;
+        notif.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#27ae60; color:white; padding:10px 20px; border-radius:5px; z-index:1000';
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 2000);
+    }
+    
+    // View product history
+    function viewHistory(id) {
+        const product = products.find(p => p.id === id);
+        if(!product || !product.history.length) {
+            alert('No transaction history for this product');
+            return;
+        }
+        
+        let historyText = `📜 History for ${product.name}\n\n`;
+        product.history.forEach(h => {
+            historyText += `${h.date} | ${h.type === 'in' ? '📥 IN' : '📤 OUT'} | ${h.quantity} units | Stock: ${h.oldStock} → ${h.newStock} | Note: ${h.note}\n`;
+        });
+        alert(historyText);
+    }
+    
+    // Delete product
+    function deleteProduct(id) {
+        if(!confirm('Delete this product? All history will be lost.')) return;
+        products = products.filter(p => p.id !== id);
+        saveData();
+        renderTable();
+        updateStats();
+        updateProductSelect();
+    }
+    
+    // Render stock table
+    function renderTable() {
+        const tbody = document.getElementById('stockTableBody');
+        tbody.innerHTML = '';
+        
+        products.forEach(p => {
+            const row = tbody.insertRow();
+            const isLow = p.stock <= p.minStock;
+            if(isLow) row.className = 'low-stock';
+            
+            row.insertCell(0).innerHTML = p.name;
+            row.insertCell(1).innerHTML = `<strong>${p.stock}</strong>`;
+            row.insertCell(2).innerHTML = p.minStock;
+            row.insertCell(3).innerHTML = isLow ? '⚠️ LOW STOCK' : '✅ OK';
+            row.insertCell(4).innerHTML = `
+                <button onclick="viewHistory(${p.id})" style="background:#3498db">📜 History</button>
+                <button onclick="deleteProduct(${p.id})" style="background:#e74c3c">🗑️ Delete</button>
+            `;
+        });
+    }
+    
+    // Update stats
+    function updateStats() {
+        document.getElementById('totalItems').innerHTML = products.length;
+        const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+        document.getElementById('totalStock').innerHTML = totalStock;
+        const lowStock = products.filter(p => p.stock <= p.minStock).length;
+        document.getElementById('lowStockCount').innerHTML = lowStock;
+    }
+    
+    // Update product dropdown
+    function updateProductSelect() {
+        const select = document.getElementById('selectProduct');
+        select.innerHTML = '<option value="">Select Product</option>';
+        products.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`;
+        });
+    }
+    
+    // Initial load
+    loadData();
+</script>
+</body>
+</html>
