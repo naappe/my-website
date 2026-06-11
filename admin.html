@@ -1,218 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel - Content Editor</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px;
-        }
-        
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        
-        label {
-            display: block;
-            font-weight: bold;
-            margin: 15px 0 5px;
-            color: #555;
-        }
-        
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            font-family: inherit;
-        }
-        
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        button {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
-            width: 100%;
-        }
-        
-        button:hover {
-            background: #2980b9;
-        }
-        
-        .logout-btn {
-            background: #e74c3c;
-            margin-top: 10px;
-        }
-        
-        .logout-btn:hover {
-            background: #c0392b;
-        }
-        
-        .success {
-            background: #27ae60;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 15px;
-            text-align: center;
-            display: none;
-        }
-        
-        .nav-links {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .nav-links a {
-            color: white;
-            margin: 0 10px;
-            text-decoration: none;
-        }
-        
-        .nav-links a:hover {
-            text-decoration: underline;
-        }
-    </style>
+<title>POS</title>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>🔧 Content Editor</h1>
-            <div class="subtitle">Edit your website's text content</div>
-            
-            <div id="loginArea">
-                <label>Admin Password</label>
-                <input type="password" id="password" placeholder="Enter password">
-                <button onclick="login()">Login</button>
-                <p id="errorMsg" style="color:red; margin-top:10px;"></p>
-            </div>
-            
-            <div id="editorArea" style="display:none;">
-                <label>Website Title</label>
-                <input type="text" id="title" placeholder="Website Title">
-                
-                <label>Main Message</label>
-                <textarea id="message" placeholder="Main message"></textarea>
-                
-                <button onclick="saveContent()">💾 Save Changes</button>
-                <button onclick="logout()" class="logout-btn">🚪 Logout</button>
-                
-                <div id="successMsg" class="success">✅ Changes saved successfully!</div>
-            </div>
-        </div>
-        
-        <div class="nav-links">
-            <a href="/">← Back to Website</a>
-            <a href="/stock.html">📦 Stock Management</a>
-            <a href="/design-admin.html">🎨 Design Editor</a>
-        </div>
-    </div>
-    
-    <script>
-        // Check if already logged in
-        if(localStorage.getItem('adminLoggedIn') === 'yes') {
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('editorArea').style.display = 'block';
-            loadContent();
-        }
-        
-        async function login() {
-            const password = document.getElementById('password').value;
-            
-            const response = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: password })
-            });
-            
-            const data = await response.json();
-            
-            if(data.success) {
-                localStorage.setItem('adminLoggedIn', 'yes');
-                document.getElementById('loginArea').style.display = 'none';
-                document.getElementById('editorArea').style.display = 'block';
-                loadContent();
-            } else {
-                document.getElementById('errorMsg').innerText = 'Wrong password';
-            }
-        }
-        
-        async function loadContent() {
-            const response = await fetch('/api/content');
-            const data = await response.json();
-            document.getElementById('title').value = data.title;
-            document.getElementById('message').value = data.message;
-        }
-        
-        async function saveContent() {
-            const title = document.getElementById('title').value;
-            const message = document.getElementById('message').value;
-            
-            const response = await fetch('/api/admin/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    password: 'admin123',
-                    title: title,
-                    message: message
-                })
-            });
-            
-            const data = await response.json();
-            
-            if(data.success) {
-                const successMsg = document.getElementById('successMsg');
-                successMsg.style.display = 'block';
-                setTimeout(() => {
-                    successMsg.style.display = 'none';
-                }, 2000);
-            }
-        }
-        
-        function logout() {
-            localStorage.removeItem('adminLoggedIn');
-            document.getElementById('loginArea').style.display = 'block';
-            document.getElementById('editorArea').style.display = 'none';
-            document.getElementById('password').value = '';
-        }
-    </script>
+
+<h1>POS System</h1>
+
+<input id="search" placeholder="Search">
+<button onclick="add()">Add Random First Item</button>
+
+<ul id="cart"></ul>
+
+<button onclick="checkout()">Checkout</button>
+
+<script>
+let products = [];
+let cart = [];
+
+async function load() {
+  const res = await fetch("/api/products");
+  products = await res.json();
+}
+
+function add() {
+  if (products.length === 0) return;
+
+  cart.push({
+    id: products[0].id,
+    name: products[0].name,
+    qty: 1
+  });
+
+  render();
+}
+
+function render() {
+  document.getElementById("cart").innerHTML =
+    cart.map(i => `<li>${i.name} x ${i.qty}</li>`).join("");
+}
+
+async function checkout() {
+  await fetch("/api/sale", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ items: cart })
+  });
+
+  cart = [];
+  render();
+  alert("Sale completed");
+}
+
+load();
+</script>
+
 </body>
 </html>
