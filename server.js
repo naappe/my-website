@@ -1,18 +1,17 @@
 const express = require('express');
 const app = express();
+const fs = require('fs');
 
 app.use(express.static('.'));
-app.use(express.json()); // For reading form data
+app.use(express.json());
 
-// Your API endpoint (for frontend)
+// ========== EXISTING CODE (keep this) ==========
 app.get('/api/message', (req, res) => {
   res.json({ message: "Hello from backend!" });
 });
 
-// Admin login check
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
-  // Change 'admin123' to your own password
   if (password === 'admin123') {
     res.json({ success: true });
   } else {
@@ -20,7 +19,6 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
-// Get content (for frontend and admin)
 let siteContent = {
   title: "My Website",
   message: "Hello from backend!"
@@ -30,7 +28,6 @@ app.get('/api/content', (req, res) => {
   res.json(siteContent);
 });
 
-// Update content (admin only - simple key check)
 app.post('/api/admin/update', (req, res) => {
   const { password, title, message } = req.body;
   if (password === 'admin123') {
@@ -41,6 +38,45 @@ app.post('/api/admin/update', (req, res) => {
     res.json({ success: false });
   }
 });
+
+// ========== NEW STOCK API (add this) ==========
+
+// File to save stock data
+const STOCK_FILE = 'stock-data.json';
+
+// Load stock data from file
+let stockProducts = [];
+
+function loadStockData() {
+  try {
+    if (fs.existsSync(STOCK_FILE)) {
+      const data = fs.readFileSync(STOCK_FILE, 'utf8');
+      stockProducts = JSON.parse(data);
+    }
+  } catch(e) {
+    console.log('No existing stock data');
+  }
+}
+
+function saveStockData() {
+  fs.writeFileSync(STOCK_FILE, JSON.stringify(stockProducts, null, 2));
+}
+
+loadStockData();
+
+// Get stock data
+app.get('/api/stock/get', (req, res) => {
+  res.json({ success: true, products: stockProducts });
+});
+
+// Save stock data
+app.post('/api/stock/save', (req, res) => {
+  stockProducts = req.body.products;
+  saveStockData();
+  res.json({ success: true });
+});
+
+// ========== END STOCK API ==========
 
 const port = 3000;
 app.listen(port, () => {
