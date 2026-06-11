@@ -1,149 +1,110 @@
-const express = require('express');
+const express = require("express");
+const fs = require("fs");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+
 const app = express();
-const fs = require('fs');
-const path = require('path');
+const PORT = 3000;
 
-app.use(express.static('.'));
-app.use(express.json());
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(__dirname));
 
-// ========== SERVE CSV FILE ==========
-app.get('/data.csv', (req, res) => {
-    const csvPath = path.join(__dirname, 'data.csv');
-    if (fs.existsSync(csvPath)) {
-        res.sendFile(csvPath);
-    } else {
-        res.status(404).send('data.csv not found. Create it on GitHub.');
-    }
+const DATA_FILE = "./data.json";
+const STOCK_FILE = "./stock.json";
+
+// Helpers
+const read = (file) => JSON.parse(fs.readFileSync(file));
+const write = (file, data) =>
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+
+// ---------------- PRODUCTS ----------------
+app.get("/api/products", (req, res) => {
+  res.json(read(DATA_FILE));
 });
 
-// ========== CONTENT API ==========
-let siteContent = {
-  title: "Stock Management System",
-  message: "Welcome to your inventory manager"
-};
+app.post("/api/products", (req, res) => {
+  const products = read(DATA_FILE);
+  const newProduct = req.body;
 
-app.get('/api/content', (req, res) => {
-  res.json(siteContent);
+  newProduct.id = Date.now();
+  newProduct.stock = Number(newProduct.stock || 0);
+
+  products.push(newProduct);
+  write(DATA_FILE, products);
+
+  res.json(newProduct);
 });
 
-app.post('/api/admin/update', (req, res) => {
-  const { password, title, message } = req.body;
-  if (password === 'admin123') {
-    if (title) siteContent.title = title;
-    if (message) siteContent.message = message;
-    res.json({ success: true, content: siteContent });
-  } else {
-    res.json({ success: false });
-  }
-});
+app.put("/api/products/:id", (req, res) => {
+  let products = read(DATA_FILE);
+  const id = Number(req.params.id);
 
-// ========== LOGIN API ==========
-app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  if (password === 'admin123') {
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
-  }
-});
+  products = products.map((p) =>
+    p.id === id ? { ...p, ...req.body } : p
+  );
 
-// ========== STOCK API ==========
-const STOCK_FILE = 'stock.json';
-
-let products = [];
-
-function loadStock() {
-  try {
-    if (fs.existsSync(STOCK_FILE)) {
-      const data = fs.readFileSync(STOCK_FILE, 'utf8');
-      products = JSON.parse(data);
-      if (!Array.isArray(products)) products = [];
-    } else {
-      products = [];
-    }
-  } catch(e) {
-    console.log('No existing stock data');
-    products = [];
-  }
-}
-
-function saveStock() {
-  fs.writeFileSync(STOCK_FILE, JSON.stringify(products, null, 2));
-}
-
-loadStock();
-
-app.get('/api/stock/get', (req, res) => {
-  res.json({ success: true, products: products });
-});
-
-app.post('/api/stock/save', (req, res) => {
-  products = req.body.products;
-  saveStock();
+  write(DATA_FILE, products);
   res.json({ success: true });
 });
 
-// ========== DESIGN API ==========
-const DESIGN_FILE = 'design-settings.json';
+app.delete("/api/products/:id", (req, res) => {
+  let products = read(DATA_FILE);
+  const id = Number(req.params.id);
 
-let designSettings = {
-  primaryColor: "#3498db",
-  backgroundColor: "#f4f4f4",
-  textColor: "#333333",
-  headingColor: "#2c3e50",
-  layoutStyle: "modern",
-  showNavbar: true,
-  showFooter: true,
-  showHeroSection: true,
-  showCardsSection: true,
-  card1Title: "Stock Management",
-  card1Text: "Track inventory, manage stock in/out, and get low stock alerts.",
-  card2Title: "Admin Panel",
-  card2Text: "Change website content, update messages, and manage settings.",
-  card3Title: "Design Editor",
-  card3Text: "Change colors, layout, and customize your website design.",
-  customCSS: "",
-  customHeader: "",
-  customFooter: ""
-};
+  products = products.filter((p) => p.id !== id);
+  write(DATA_FILE, products);
 
-function loadDesign() {
-  try {
-    if (fs.existsSync(DESIGN_FILE)) {
-      const data = fs.readFileSync(DESIGN_FILE, 'utf8');
-      const saved = JSON.parse(data);
-      Object.assign(designSettings, saved);
+  res.json({ success: true });
+});
+
+// ---------------- SALES / STOCK ----------------
+app.post("/api/sale", (req, res) => {
+  const { items } = req.body;
+
+  let products = read(DATA_FILE);
+  let stock = read(STOCK_FILE);
+
+  items.forEach((item) => {
+    const product = products.find((p) => p.id === item.id);
+
+    if (product) {
+      product.stock -= item.qty;
+
+      stock.push({
+        date: new Date().toISOString(),
+        productId: item.id,
+        name: product.name,
+        qty: -item.qty,
+        type: "SALE"
+      });
     }
-  } catch(e) {
-    console.log('No design settings');
-  }
-}
+  });
 
-function saveDesign() {
-  fs.writeFileSync(DESIGN_FILE, JSON.stringify(designSettings, null, 2));
-}
+  write(DATA_FILE, products);
+  write(STOCK_FILE, stock);
 
-loadDesign();
-
-app.get('/api/design/get', (req, res) => {
-  res.json({ success: true, settings: designSettings });
+  res.json({ success: true });
 });
 
-app.post('/api/design/save', (req, res) => {
-  const { password, settings } = req.body;
-  if (password === 'admin123') {
-    Object.assign(designSettings, settings);
-    saveDesign();
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
-  }
+// ---------------- DASHBOARD ----------------
+app.get("/api/dashboard", (req, res) => {
+  const products = read(DATA_FILE);
+  const stock = read(STOCK_FILE);
+
+  const totalProducts = products.length;
+  const totalStock = products.reduce((a, b) => a + (b.stock || 0), 0);
+  const lowStock = products.filter(p => p.stock <= (p.minStock || 5));
+
+  res.json({
+    totalProducts,
+    totalStock,
+    lowStockCount: lowStock.length,
+    stock,
+    lowStock
+  });
 });
 
-// ========== START SERVER ==========
-const port = 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Stock file: ${STOCK_FILE}`);
-  console.log(`Products loaded: ${products.length}`);
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
