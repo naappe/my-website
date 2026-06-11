@@ -2,16 +2,20 @@
 <html>
 <head>
     <title>My Website</title>
+    <style>
+        body { font-family: Arial; padding: 40px; text-align: center; }
+    </style>
 </head>
 <body>
-    <h1>My Website</h1>
-    <p id="result">Loading...</p>
+    <h1 id="title">Loading...</h1>
+    <p id="message">Loading...</p>
     
     <script>
-        fetch('/api/message')
+        fetch('/api/content')
             .then(res => res.json())
             .then(data => {
-                document.getElementById('result').innerHTML = data.message;
+                document.getElementById('title').innerHTML = data.title;
+                document.getElementById('message').innerHTML = data.message;
             });
     </script>
 </body>
