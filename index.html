@@ -1,163 +1,606 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>StockFlow Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
-    display: flex;
-  }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-  /* Sidebar */
-  .sidebar {
-    width: 220px;
-    background: #111827;
-    height: 100vh;
-    padding: 20px;
-  }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-  .sidebar h2 {
-    color: #38bdf8;
-    font-size: 20px;
-  }
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-  .sidebar a {
-    display: block;
-    color: #cbd5e1;
-    padding: 10px 0;
-    text-decoration: none;
-  }
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
 
-  .sidebar a:hover {
-    color: white;
-  }
+        .header p {
+            color: rgba(255,255,255,0.9);
+        }
 
-  /* Main */
-  .main {
-    flex: 1;
-    padding: 20px;
-  }
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
 
-  .title {
-    font-size: 26px;
-    margin-bottom: 20px;
-  }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-  /* Cards */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-  }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
 
-  .card {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
 
-  .card h3 {
-    margin: 0;
-    font-size: 14px;
-    color: #94a3b8;
-  }
+        /* Forms */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-  .card p {
-    font-size: 24px;
-    margin-top: 10px;
-    color: #38bdf8;
-  }
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.3rem;
+        }
 
-  /* Alerts */
-  .alert {
-    margin-top: 20px;
-    background: #7f1d1d;
-    padding: 15px;
-    border-radius: 10px;
-  }
+        .form-group {
+            margin-bottom: 15px;
+        }
 
-  .alert h4 {
-    margin: 0 0 10px 0;
-    color: #f87171;
-  }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
 
-</style>
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        /* Stock Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .low-stock {
+            background: #fee;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .stock-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stock-ok {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .stock-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 350px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+        }
+
+        .login-box input {
+            margin-bottom: 20px;
+        }
+
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #27ae60;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .history {
+            font-size: 11px;
+            color: #666;
+            max-width: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            .row {
+                grid-template-columns: 1fr;
+            }
+            th, td {
+                font-size: 12px;
+                padding: 8px;
+            }
+        }
+    </style>
 </head>
-
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Stock Manager</h1>
+            <p>Simple inventory management with stock in/out</p>
+        </div>
 
-<!-- Sidebar -->
-<div class="sidebar">
-  <h2>📦 StockFlow</h2>
-  <a href="index.html">Dashboard</a>
-  <a href="stock.html">Inventory</a>
-  <a href="admin.html">POS</a>
-</div>
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalProducts">0</div>
+                <div class="stat-label">Total Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalStock">0</div>
+                <div class="stat-label">Total Units</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lowStockCount">0</div>
+                <div class="stat-label">Low Stock</div>
+            </div>
+        </div>
 
-<!-- Main -->
-<div class="main">
+        <!-- Main Content (hidden until login) -->
+        <div id="appContent" style="display: none;">
+            <!-- Add Product -->
+            <div class="card">
+                <h2>➕ Add New Product</h2>
+                <div class="row">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="productName" placeholder="e.g., Apple">
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Stock</label>
+                        <input type="number" id="initialStock" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Alert (below this warns)</label>
+                        <input type="number" id="minStock" value="5">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button onclick="addProduct()" style="width: 100%;">Add Product</button>
+                    </div>
+                </div>
+            </div>
 
-  <div class="title">Dashboard Overview</div>
+            <!-- Stock In/Out -->
+            <div class="card">
+                <h2>📥 Stock IN / 📤 Stock OUT</h2>
+                <div class="row">
+                    <div class="form-group">
+                        <label>Select Product</label>
+                        <select id="selectProduct">
+                            <option value="">-- Select --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="transactionType">
+                            <option value="in">📥 Stock IN (Add)</option>
+                            <option value="out">📤 Stock OUT (Remove)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="quantity" placeholder="Quantity">
+                    </div>
+                    <div class="form-group">
+                        <label>Note (optional)</label>
+                        <input type="text" id="note" placeholder="Reason / Reference">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button onclick="updateStock()" style="width: 100%;">Update Stock</button>
+                    </div>
+                </div>
+                <div id="updateMessage" class="success" style="display: none;"></div>
+                <div id="updateError" class="error" style="display: none;"></div>
+            </div>
 
-  <div class="cards">
-    <div class="card">
-      <h3>Total Products</h3>
-      <p id="products">0</p>
+            <!-- Product List -->
+            <div class="card">
+                <h2>📋 Product List</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Stock</th>
+                                <th>Min Alert</th>
+                                <th>Status</th>
+                                <th>Last Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTable">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-      <h3>Total Stock</h3>
-      <p id="stock">0</p>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <h2>🔐 Admin Login</h2>
+            <input type="password" id="loginPassword" placeholder="Enter password">
+            <button onclick="login()" style="width: 100%;">Login</button>
+            <div id="loginError" class="error"></div>
+        </div>
     </div>
 
-    <div class="card">
-      <h3>Low Stock Items</h3>
-      <p id="lowstock">0</p>
-    </div>
+    <script>
+        let products = [];
 
-    <div class="card">
-      <h3>Total Sales</h3>
-      <p id="sales">0</p>
-    </div>
-  </div>
+        // Check if already logged in
+        if (localStorage.getItem('loggedIn') === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            loadProducts();
+        }
 
-  <div class="alert" id="alertBox" style="display:none;">
-    <h4>⚠ Low Stock Alert</h4>
-    <div id="alertList"></div>
-  </div>
+        async function login() {
+            const password = document.getElementById('loginPassword').value;
+            
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                localStorage.setItem('loggedIn', 'true');
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                loadProducts();
+            } else {
+                document.getElementById('loginError').innerText = 'Wrong password';
+            }
+        }
 
-</div>
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/stock');
+                products = await response.json();
+                renderTable();
+                updateStats();
+                updateProductSelect();
+            } catch(e) {
+                console.error('Error:', e);
+            }
+        }
 
-<script>
-async function loadDashboard() {
-  const res = await fetch("/api/dashboard");
-  const data = await res.json();
+        async function addProduct() {
+            const name = document.getElementById('productName').value.trim();
+            const stock = parseInt(document.getElementById('initialStock').value);
+            const minStock = parseInt(document.getElementById('minStock').value);
+            
+            if (!name) {
+                alert('Enter product name');
+                return;
+            }
+            
+            const response = await fetch('/api/stock/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, stock, minStock })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('productName').value = '';
+                document.getElementById('initialStock').value = '0';
+                loadProducts();
+                showMessage('Product added!', 'success');
+            } else {
+                alert(data.error);
+            }
+        }
 
-  document.getElementById("products").innerText = data.totalProducts;
-  document.getElementById("stock").innerText = data.totalStock;
-  document.getElementById("lowstock").innerText = data.lowStock.length;
-  document.getElementById("sales").innerText = data.sales;
+        async function updateStock() {
+            const id = parseInt(document.getElementById('selectProduct').value);
+            const type = document.getElementById('transactionType').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const note = document.getElementById('note').value;
+            
+            if (!id) {
+                alert('Select a product');
+                return;
+            }
+            
+            if (!quantity || quantity <= 0) {
+                alert('Enter valid quantity');
+                return;
+            }
+            
+            const response = await fetch('/api/stock/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type, quantity, note })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('quantity').value = '';
+                document.getElementById('note').value = '';
+                loadProducts();
+                showMessage(`${type === 'in' ? 'Added' : 'Removed'} ${quantity} units`, 'success');
+            } else {
+                showMessage(data.error, 'error');
+            }
+        }
 
-  // LOW STOCK ALERT UI
-  if (data.lowStock.length > 0) {
-    document.getElementById("alertBox").style.display = "block";
+        async function deleteProduct(id, name) {
+            if (confirm(`Delete "${name}"? This cannot be undone.`)) {
+                const response = await fetch('/api/stock/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadProducts();
+                    showMessage('Product deleted', 'success');
+                }
+            }
+        }
 
-    document.getElementById("alertList").innerHTML =
-      data.lowStock.map(p =>
-        `<div>⚠ ${p.name} (Stock: ${p.stock})</div>`
-      ).join("");
-  }
-}
+        function renderTable() {
+            const tbody = document.getElementById('productTable');
+            
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No products yet. Add your first product above.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            products.forEach(p => {
+                const row = tbody.insertRow();
+                const isLow = p.stock <= p.minStock;
+                if (isLow) row.className = 'low-stock';
+                
+                const lastHistory = p.history && p.history[0] ? p.history[0] : null;
+                const lastActivity = lastHistory ? `${lastHistory.date}<br>${lastHistory.type === 'in' ? '+' : '-'}${lastHistory.quantity}` : 'No activity';
+                
+                row.insertCell(0).innerHTML = p.name;
+                row.insertCell(1).innerHTML = `<strong>${p.stock}</strong>`;
+                row.insertCell(2).innerHTML = p.minStock;
+                row.insertCell(3).innerHTML = `<span class="stock-badge ${isLow ? 'stock-low' : 'stock-ok'}">${isLow ? '⚠️ LOW' : '✅ OK'}</span>`;
+                row.insertCell(4).innerHTML = `<div class="history">${lastActivity}</div>`;
+                row.insertCell(5).innerHTML = `
+                    <div class="action-buttons">
+                        <button onclick="quickIn(${p.id})" style="background:#27ae60; padding:4px 8px;">+</button>
+                        <button onclick="quickOut(${p.id})" style="background:#e74c3c; padding:4px 8px;">-</button>
+                        <button onclick="deleteProduct(${p.id}, '${p.name}')" class="btn-danger" style="padding:4px 8px;">🗑️</button>
+                    </div>
+                `;
+            });
+        }
 
-loadDashboard();
-</script>
+        function quickIn(id) {
+            const qty = prompt('Enter quantity to ADD:');
+            if (qty && parseInt(qty) > 0) {
+                performQuickUpdate(id, 'in', parseInt(qty));
+            }
+        }
 
+        function quickOut(id) {
+            const qty = prompt('Enter quantity to REMOVE:');
+            if (qty && parseInt(qty) > 0) {
+                performQuickUpdate(id, 'out', parseInt(qty));
+            }
+        }
+
+        async function performQuickUpdate(id, type, quantity) {
+            const response = await fetch('/api/stock/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type, quantity, note: 'Quick update' })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                loadProducts();
+                showMessage(`${type === 'in' ? '+' : '-'}${quantity}`, 'success');
+            } else {
+                showMessage(data.error, 'error');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalProducts').innerText = products.length;
+            const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+            document.getElementById('totalStock').innerText = totalStock;
+            const lowStock = products.filter(p => p.stock <= p.minStock).length;
+            document.getElementById('lowStockCount').innerText = lowStock;
+        }
+
+        function updateProductSelect() {
+            const select = document.getElementById('selectProduct');
+            select.innerHTML = '<option value="">-- Select --</option>';
+            products.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.name} (${p.stock} in stock)</option>`;
+            });
+        }
+
+        function showMessage(msg, type) {
+            const messageDiv = type === 'success' ? document.getElementById('updateMessage') : document.getElementById('updateError');
+            const otherDiv = type === 'success' ? document.getElementById('updateError') : document.getElementById('updateMessage');
+            
+            messageDiv.innerText = msg;
+            messageDiv.style.display = 'block';
+            otherDiv.style.display = 'none';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function logout() {
+            localStorage.removeItem('loggedIn');
+            location.reload();
+        }
+    </script>
 </body>
 </html>
