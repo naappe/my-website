@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Manager</title>
+    <title>Advanced Stock Manager</title>
     <style>
         * {
             margin: 0;
@@ -19,11 +19,10 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        /* Header */
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -39,7 +38,6 @@
             color: rgba(255,255,255,0.9);
         }
 
-        /* Stats Cards */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -66,7 +64,6 @@
             margin-top: 5px;
         }
 
-        /* Forms */
         .card {
             background: white;
             border-radius: 15px;
@@ -92,7 +89,7 @@
             font-weight: 500;
         }
 
-        input, select {
+        input, select, textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -101,7 +98,7 @@
             transition: border-color 0.3s;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -122,10 +119,6 @@
             transform: translateY(-2px);
         }
 
-        button:active {
-            transform: translateY(0);
-        }
-
         .btn-danger {
             background: #e74c3c;
         }
@@ -142,15 +135,28 @@
             background: #219a52;
         }
 
+        .btn-warning {
+            background: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .btn-info {
+            background: #3498db;
+        }
+
         .row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
         }
 
-        /* Stock Table */
         .table-container {
             overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
         }
 
         table {
@@ -168,6 +174,8 @@
             background: #f8f9fa;
             font-weight: 600;
             color: #555;
+            position: sticky;
+            top: 0;
         }
 
         .low-stock {
@@ -200,39 +208,69 @@
             flex-wrap: wrap;
         }
 
-        .action-buttons button {
-            padding: 6px 12px;
-            font-size: 12px;
+        .search-box {
+            margin-bottom: 20px;
         }
 
-        .error {
-            color: #e74c3c;
-            margin-top: 10px;
-            font-size: 14px;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
         }
 
-        .success {
-            color: #27ae60;
-            margin-top: 10px;
-            font-size: 14px;
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 500px;
+            max-width: 90%;
         }
 
-        .history {
-            font-size: 11px;
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .close {
+            cursor: pointer;
+            font-size: 24px;
+            color: #999;
+        }
+
+        .csv-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        .last-updated {
+            text-align: right;
             color: #666;
-            max-width: 200px;
+            font-size: 12px;
+            margin-top: 10px;
         }
 
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: 1fr;
             }
-            .row {
-                grid-template-columns: 1fr;
-            }
-            th, td {
-                font-size: 12px;
-                padding: 8px;
+            .action-buttons {
+                flex-direction: column;
             }
         }
     </style>
@@ -240,11 +278,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📦 Stock Manager</h1>
-            <p>Simple inventory management with stock in/out</p>
+            <h1>📦 Advanced Stock Manager</h1>
+            <p>Complete inventory management system</p>
         </div>
 
-        <!-- Stats -->
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-number" id="totalProducts">0</div>
@@ -256,251 +293,417 @@
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="lowStockCount">0</div>
-                <div class="stat-label">Low Stock</div>
+                <div class="stat-label">Low Stock Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalValue">0</div>
+                <div class="stat-label">Total Value ($)</div>
             </div>
         </div>
 
-        <!-- Main Content (always visible) -->
-        <div id="appContent">
-            <!-- Add Product -->
-            <div class="card">
-                <h2>➕ Add New Product</h2>
-                <div class="row">
-                    <div class="form-group">
-                        <label>Product Name</label>
-                        <input type="text" id="productName" placeholder="e.g., Apple">
-                    </div>
-                    <div class="form-group">
-                        <label>Initial Stock</label>
-                        <input type="number" id="initialStock" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Minimum Alert (below this warns)</label>
-                        <input type="number" id="minStock" value="5">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
-                        <button onclick="addProduct()" style="width: 100%;">Add Product</button>
-                    </div>
+        <!-- Search -->
+        <div class="card">
+            <h2>🔍 Search & Filter</h2>
+            <div class="row">
+                <div class="form-group">
+                    <label>Search Product</label>
+                    <input type="text" id="searchInput" placeholder="Search by name..." onkeyup="searchProducts()">
+                </div>
+                <div class="form-group">
+                    <label>Filter by Status</label>
+                    <select id="filterStatus" onchange="searchProducts()">
+                        <option value="all">All Products</option>
+                        <option value="low">Low Stock Only</option>
+                        <option value="normal">Normal Stock</option>
+                    </select>
                 </div>
             </div>
+        </div>
 
-            <!-- Stock In/Out -->
-            <div class="card">
-                <h2>📥 Stock IN / 📤 Stock OUT</h2>
-                <div class="row">
-                    <div class="form-group">
-                        <label>Select Product</label>
-                        <select id="selectProduct">
-                            <option value="">-- Select --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select id="transactionType">
-                            <option value="in">📥 Stock IN (Add)</option>
-                            <option value="out">📤 Stock OUT (Remove)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantity</label>
-                        <input type="number" id="quantity" placeholder="Quantity">
-                    </div>
-                    <div class="form-group">
-                        <label>Note (optional)</label>
-                        <input type="text" id="note" placeholder="Reason / Reference">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
-                        <button onclick="updateStock()" style="width: 100%;">Update Stock</button>
-                    </div>
+        <!-- Add/Edit Product -->
+        <div class="card">
+            <h2 id="formTitle">➕ Add New Product</h2>
+            <div class="row">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="productName" placeholder="e.g., Apple">
                 </div>
-                <div id="updateMessage" class="success" style="display: none;"></div>
-                <div id="updateError" class="error" style="display: none;"></div>
+                <div class="form-group">
+                    <label>Current Stock</label>
+                    <input type="number" id="productStock" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Minimum Alert (below this warns)</label>
+                    <input type="number" id="productMinStock" value="5">
+                </div>
+                <div class="form-group">
+                    <label>Price per Unit ($)</label>
+                    <input type="number" id="productPrice" value="0" step="0.01">
+                </div>
+                <div class="form-group" style="display: flex; align-items: end; gap: 10px;">
+                    <button onclick="saveProduct()" style="width: 100%;">Save Product</button>
+                    <button onclick="cancelEdit()" class="btn-warning" style="width: 100%; display: none;" id="cancelBtn">Cancel</button>
+                </div>
             </div>
+            <input type="hidden" id="editId">
+        </div>
 
-            <!-- Product List -->
-            <div class="card">
-                <h2>📋 Product List</h2>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Stock</th>
-                                <th>Min Alert</th>
-                                <th>Status</th>
-                                <th>Last Activity</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTable">
-                            <tr>
-                                <td colspan="6" style="text-align: center;">Loading...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- Stock Adjustment -->
+        <div class="card">
+            <h2>📊 Stock Adjustment</h2>
+            <div class="row">
+                <div class="form-group">
+                    <label>Select Product</label>
+                    <select id="adjustProduct">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Adjustment Type</label>
+                    <select id="adjustType">
+                        <option value="in">📥 Stock IN (Add)</option>
+                        <option value="out">📤 Stock OUT (Remove)</option>
+                        <option value="set">⚡ Set to exact value</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity/Value</label>
+                    <input type="number" id="adjustQuantity" placeholder="Quantity">
+                </div>
+                <div class="form-group">
+                    <label>Note/Reason</label>
+                    <input type="text" id="adjustNote" placeholder="Reason for adjustment">
+                </div>
+                <div class="form-group" style="display: flex; align-items: end;">
+                    <button onclick="adjustStock()">Apply Adjustment</button>
                 </div>
             </div>
+            <div id="adjustMessage" class="success" style="display: none;"></div>
+            <div id="adjustError" class="error" style="display: none;"></div>
+        </div>
+
+        <!-- CSV Import/Export -->
+        <div class="card">
+            <h2>📁 CSV Import / Export</h2>
+            <div class="csv-actions">
+                <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="importCSV()">
+                <button onclick="document.getElementById('csvFile').click()" class="btn-success">📥 Import CSV</button>
+                <button onclick="exportCSV()" class="btn-info">📤 Export CSV</button>
+                <button onclick="downloadTemplate()" class="btn-warning">📄 Download Template</button>
+            </div>
+            <div class="last-updated" id="lastUpdated"></div>
+        </div>
+
+        <!-- Product List -->
+        <div class="card">
+            <h2>📋 Product List</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Stock</th>
+                            <th>Min Alert</th>
+                            <th>Price</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTable">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Movement History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📜 Stock Movement History</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="historyContent"></div>
         </div>
     </div>
 
     <script>
         let products = [];
+        let searchTerm = '';
+        let filterStatus = 'all';
 
-        // Load products immediately (no login needed)
-        loadProducts();
+        // Load from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('stockManagerData');
+            if (saved) {
+                products = JSON.parse(saved);
+            } else {
+                // Sample data
+                products = [
+                    { id: 1, name: 'Laptop', stock: 15, minStock: 5, price: 999.99, history: [] },
+                    { id: 2, name: 'Mouse', stock: 50, minStock: 10, price: 29.99, history: [] },
+                    { id: 3, name: 'Keyboard', stock: 8, minStock: 5, price: 79.99, history: [] }
+                ];
+                updateLastUpdated();
+                saveData();
+            }
+            updateLastUpdatedDisplay();
+            renderTable();
+            updateStats();
+            updateProductSelect();
+        }
 
-        async function loadProducts() {
-            try {
-                const response = await fetch('/api/stock');
-                products = await response.json();
-                renderTable();
-                updateStats();
-                updateProductSelect();
-            } catch(e) {
-                console.error('Error:', e);
+        function saveData() {
+            localStorage.setItem('stockManagerData', JSON.stringify(products));
+            updateLastUpdated();
+            updateLastUpdatedDisplay();
+        }
+
+        function updateLastUpdated() {
+            products.lastUpdated = new Date().toISOString();
+            localStorage.setItem('lastUpdated', products.lastUpdated);
+        }
+
+        function updateLastUpdatedDisplay() {
+            const lastUpdated = localStorage.getItem('lastUpdated');
+            if (lastUpdated) {
+                document.getElementById('lastUpdated').innerHTML = `Last Updated: ${new Date(lastUpdated).toLocaleString()}`;
             }
         }
 
-        async function addProduct() {
+        function saveProduct() {
+            const id = document.getElementById('editId').value;
             const name = document.getElementById('productName').value.trim();
-            const stock = parseInt(document.getElementById('initialStock').value);
-            const minStock = parseInt(document.getElementById('minStock').value);
-            
+            const stock = parseInt(document.getElementById('productStock').value);
+            const minStock = parseInt(document.getElementById('productMinStock').value);
+            const price = parseFloat(document.getElementById('productPrice').value);
+
             if (!name) {
                 alert('Enter product name');
                 return;
             }
-            
-            const response = await fetch('/api/stock/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, stock, minStock })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                document.getElementById('productName').value = '';
-                document.getElementById('initialStock').value = '0';
-                loadProducts();
-                showMessage('Product added!', 'success');
+
+            if (id) {
+                // Edit existing
+                const index = products.findIndex(p => p.id == id);
+                if (index !== -1) {
+                    const oldStock = products[index].stock;
+                    products[index] = { 
+                        ...products[index], 
+                        name, 
+                        stock, 
+                        minStock, 
+                        price,
+                        history: products[index].history 
+                    };
+                    
+                    // Add to history if stock changed
+                    if (oldStock !== stock) {
+                        addHistory(products[index].id, 'edit', Math.abs(stock - oldStock), 
+                                 `Stock adjusted from ${oldStock} to ${stock}`, oldStock, stock);
+                    }
+                    
+                    showMessage('Product updated successfully!', 'success');
+                }
             } else {
-                alert(data.error);
+                // Add new
+                if (products.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    alert('Product already exists!');
+                    return;
+                }
+                products.push({
+                    id: Date.now(),
+                    name: name,
+                    stock: stock,
+                    minStock: minStock,
+                    price: price,
+                    history: []
+                });
+                showMessage('Product added successfully!', 'success');
+            }
+
+            saveData();
+            cancelEdit();
+            renderTable();
+            updateStats();
+            updateProductSelect();
+        }
+
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (product) {
+                document.getElementById('formTitle').innerHTML = '✏️ Edit Product';
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productStock').value = product.stock;
+                document.getElementById('productMinStock').value = product.minStock;
+                document.getElementById('productPrice').value = product.price;
+                document.getElementById('editId').value = product.id;
+                document.getElementById('cancelBtn').style.display = 'block';
+                document.getElementById('formTitle').scrollIntoView({ behavior: 'smooth' });
             }
         }
 
-        async function updateStock() {
-            const id = parseInt(document.getElementById('selectProduct').value);
-            const type = document.getElementById('transactionType').value;
-            const quantity = parseInt(document.getElementById('quantity').value);
-            const note = document.getElementById('note').value;
-            
+        function cancelEdit() {
+            document.getElementById('formTitle').innerHTML = '➕ Add New Product';
+            document.getElementById('productName').value = '';
+            document.getElementById('productStock').value = '0';
+            document.getElementById('productMinStock').value = '5';
+            document.getElementById('productPrice').value = '0';
+            document.getElementById('editId').value = '';
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        function deleteProduct(id, name) {
+            if (confirm(`Delete "${name}"? This cannot be undone.`)) {
+                products = products.filter(p => p.id !== id);
+                saveData();
+                renderTable();
+                updateStats();
+                updateProductSelect();
+                showMessage('Product deleted successfully!', 'success');
+            }
+        }
+
+        function adjustStock() {
+            const id = parseInt(document.getElementById('adjustProduct').value);
+            const type = document.getElementById('adjustType').value;
+            const quantity = parseInt(document.getElementById('adjustQuantity').value);
+            const note = document.getElementById('adjustNote').value;
+
             if (!id) {
                 alert('Select a product');
                 return;
             }
-            
+
             if (!quantity || quantity <= 0) {
                 alert('Enter valid quantity');
                 return;
             }
+
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            const oldStock = product.stock;
+
+            if (type === 'in') {
+                product.stock += quantity;
+                addHistory(id, 'in', quantity, note || 'Stock IN', oldStock, product.stock);
+                showMessage(`Added ${quantity} units to ${product.name}`, 'success');
+            } else if (type === 'out') {
+                if (product.stock < quantity) {
+                    showMessage(`Not enough stock! Only ${product.stock} available`, 'error');
+                    return;
+                }
+                product.stock -= quantity;
+                addHistory(id, 'out', quantity, note || 'Stock OUT', oldStock, product.stock);
+                showMessage(`Removed ${quantity} units from ${product.name}`, 'success');
+            } else if (type === 'set') {
+                product.stock = quantity;
+                addHistory(id, 'set', quantity, note || 'Stock set to exact value', oldStock, product.stock);
+                showMessage(`Set ${product.name} stock to ${quantity} units`, 'success');
+            }
+
+            saveData();
+            renderTable();
+            updateStats();
+            updateProductSelect();
             
-            const response = await fetch('/api/stock/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, type, quantity, note })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                document.getElementById('quantity').value = '';
-                document.getElementById('note').value = '';
-                loadProducts();
-                showMessage(`${type === 'in' ? 'Added' : 'Removed'} ${quantity} units`, 'success');
-            } else {
-                showMessage(data.error, 'error');
+            document.getElementById('adjustQuantity').value = '';
+            document.getElementById('adjustNote').value = '';
+        }
+
+        function addHistory(productId, type, quantity, note, oldStock, newStock) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                if (!product.history) product.history = [];
+                product.history.unshift({
+                    date: new Date().toLocaleString(),
+                    type: type,
+                    quantity: quantity,
+                    note: note,
+                    oldStock: oldStock,
+                    newStock: newStock
+                });
+                // Keep last 50 records
+                if (product.history.length > 50) product.history.pop();
             }
         }
 
-        async function deleteProduct(id, name) {
-            if (confirm(`Delete "${name}"? This cannot be undone.`)) {
-                const response = await fetch('/api/stock/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    loadProducts();
-                    showMessage('Product deleted', 'success');
+        function showHistory(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product && product.history) {
+                const historyContent = document.getElementById('historyContent');
+                if (product.history.length === 0) {
+                    historyContent.innerHTML = '<p>No history available.</p>';
+                } else {
+                    historyContent.innerHTML = product.history.map(h => `
+                        <div class="history-item">
+                            <strong>${h.date}</strong><br>
+                            Type: ${h.type.toUpperCase()}<br>
+                            Quantity: ${h.quantity}<br>
+                            Stock: ${h.oldStock} → ${h.newStock}<br>
+                            Note: ${h.note || 'No note'}
+                        </div>
+                    `).join('');
                 }
+                document.getElementById('historyModal').style.display = 'flex';
             }
+        }
+
+        function closeModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        function searchProducts() {
+            searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            filterStatus = document.getElementById('filterStatus').value;
+            renderTable();
         }
 
         function renderTable() {
             const tbody = document.getElementById('productTable');
             
-            if (products.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No products yet. Add your first product above.</td></tr>';
+            let filtered = products.filter(p => 
+                p.name.toLowerCase().includes(searchTerm)
+            );
+
+            if (filterStatus === 'low') {
+                filtered = filtered.filter(p => p.stock <= p.minStock);
+            } else if (filterStatus === 'normal') {
+                filtered = filtered.filter(p => p.stock > p.minStock);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No products found.</td></tr>';
                 return;
             }
             
             tbody.innerHTML = '';
             
-            products.forEach(p => {
+            filtered.forEach(p => {
                 const row = tbody.insertRow();
                 const isLow = p.stock <= p.minStock;
                 if (isLow) row.className = 'low-stock';
-                
-                const lastHistory = p.history && p.history[0] ? p.history[0] : null;
-                const lastActivity = lastHistory ? `${lastHistory.date}<br>${lastHistory.type === 'in' ? '+' : '-'}${lastHistory.quantity}` : 'No activity';
+                const value = p.stock * (p.price || 0);
                 
                 row.insertCell(0).innerHTML = p.name;
                 row.insertCell(1).innerHTML = `<strong>${p.stock}</strong>`;
                 row.insertCell(2).innerHTML = p.minStock;
-                row.insertCell(3).innerHTML = `<span class="stock-badge ${isLow ? 'stock-low' : 'stock-ok'}">${isLow ? '⚠️ LOW' : '✅ OK'}</span>`;
-                row.insertCell(4).innerHTML = `<div class="history">${lastActivity}</div>`;
-                row.insertCell(5).innerHTML = `
+                row.insertCell(3).innerHTML = `$${(p.price || 0).toFixed(2)}`;
+                row.insertCell(4).innerHTML = `<strong>$${value.toFixed(2)}</strong>`;
+                row.insertCell(5).innerHTML = `<span class="stock-badge ${isLow ? 'stock-low' : 'stock-ok'}">${isLow ? '⚠️ LOW' : '✅ OK'}</span>`;
+                row.insertCell(6).innerHTML = `
                     <div class="action-buttons">
-                        <button onclick="quickIn(${p.id})" style="background:#27ae60; padding:4px 8px;">+</button>
-                        <button onclick="quickOut(${p.id})" style="background:#e74c3c; padding:4px 8px;">-</button>
-                        <button onclick="deleteProduct(${p.id}, '${p.name}')" class="btn-danger" style="padding:4px 8px;">🗑️</button>
+                        <button onclick="editProduct(${p.id})" class="btn-info" style="padding:6px 12px;">✏️ Edit</button>
+                        <button onclick="showHistory(${p.id})" class="btn-warning" style="padding:6px 12px;">📜 History</button>
+                        <button onclick="deleteProduct(${p.id}, '${p.name}')" class="btn-danger" style="padding:6px 12px;">🗑️ Delete</button>
                     </div>
                 `;
             });
-        }
-
-        function quickIn(id) {
-            const qty = prompt('Enter quantity to ADD:');
-            if (qty && parseInt(qty) > 0) {
-                performQuickUpdate(id, 'in', parseInt(qty));
-            }
-        }
-
-        function quickOut(id) {
-            const qty = prompt('Enter quantity to REMOVE:');
-            if (qty && parseInt(qty) > 0) {
-                performQuickUpdate(id, 'out', parseInt(qty));
-            }
-        }
-
-        async function performQuickUpdate(id, type, quantity) {
-            const response = await fetch('/api/stock/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, type, quantity, note: 'Quick update' })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                loadProducts();
-                showMessage(`${type === 'in' ? '+' : '-'}${quantity}`, 'success');
-            } else {
-                showMessage(data.error, 'error');
-            }
         }
 
         function updateStats() {
@@ -509,10 +712,12 @@
             document.getElementById('totalStock').innerText = totalStock;
             const lowStock = products.filter(p => p.stock <= p.minStock).length;
             document.getElementById('lowStockCount').innerText = lowStock;
+            const totalValue = products.reduce((sum, p) => sum + (p.stock * (p.price || 0)), 0);
+            document.getElementById('totalValue').innerText = totalValue.toFixed(2);
         }
 
         function updateProductSelect() {
-            const select = document.getElementById('selectProduct');
+            const select = document.getElementById('adjustProduct');
             select.innerHTML = '<option value="">-- Select --</option>';
             products.forEach(p => {
                 select.innerHTML += `<option value="${p.id}">${p.name} (${p.stock} in stock)</option>`;
@@ -520,8 +725,8 @@
         }
 
         function showMessage(msg, type) {
-            const messageDiv = type === 'success' ? document.getElementById('updateMessage') : document.getElementById('updateError');
-            const otherDiv = type === 'success' ? document.getElementById('updateError') : document.getElementById('updateMessage');
+            const messageDiv = type === 'success' ? document.getElementById('adjustMessage') : document.getElementById('adjustError');
+            const otherDiv = type === 'success' ? document.getElementById('adjustError') : document.getElementById('adjustMessage');
             
             messageDiv.innerText = msg;
             messageDiv.style.display = 'block';
@@ -531,6 +736,86 @@
                 messageDiv.style.display = 'none';
             }, 3000);
         }
+
+        function exportCSV() {
+            const headers = ['ID', 'Name', 'Stock', 'Min Stock', 'Price', 'Total Value'];
+            const csvData = products.map(p => [
+                p.id, p.name, p.stock, p.minStock, p.price || 0, (p.stock * (p.price || 0)).toFixed(2)
+            ]);
+            
+            const csvContent = [headers, ...csvData].map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `stock_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage('CSV exported successfully!', 'success');
+        }
+
+        function importCSV() {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n').map(row => row.split(','));
+                const headers = rows[0];
+                
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.length >= 5 && row[1]) {
+                        const existingIndex = products.findIndex(p => p.name.toLowerCase() === row[1].toLowerCase());
+                        const newProduct = {
+                            id: parseInt(row[0]) || Date.now() + i,
+                            name: row[1].trim(),
+                            stock: parseInt(row[2]) || 0,
+                            minStock: parseInt(row[3]) || 5,
+                            price: parseFloat(row[4]) || 0,
+                            history: []
+                        };
+                        
+                        if (existingIndex !== -1) {
+                            products[existingIndex] = newProduct;
+                        } else {
+                            products.push(newProduct);
+                        }
+                    }
+                }
+                
+                saveData();
+                renderTable();
+                updateStats();
+                updateProductSelect();
+                showMessage('CSV imported successfully!', 'success');
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadTemplate() {
+            const template = [['ID', 'Name', 'Stock', 'Min Stock', 'Price']];
+            const csvContent = template.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'stock_template.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Initialize
+        loadData();
     </script>
 </body>
 </html>
