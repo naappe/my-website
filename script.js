@@ -1,527 +1,329 @@
-// STORAGE KEYS
-const STORAGE_PRODUCTS = 'inventory_products';
-const STORAGE_HISTORY = 'inventory_history';
+// =========================
+// WHITE SAFFRON INVENTORY - COMPLETE SYSTEM
+// =========================
 
-// Global state
 let products = [];
-let stockHistory = [];
-let currentPage = 1;
-let itemsPerPage = 8;
-let currentEditId = null;
-let currentCurrency = '$';
+let stockData = {};
+let historyData = [];
+let selectedProductIndex = null;
 
-// Load initial data
+// Default sample products
+const defaultProducts = [
+    { vendor: "TechPro", name: "Wireless Mouse", unit: "pcs", rate: 25.00, minStock: 10 },
+    { vendor: "LogiTech", name: "Keyboard", unit: "pcs", rate: 35.00, minStock: 10 },
+    { vendor: "CableWorld", name: "USB Type-C Cable", unit: "pcs", rate: 8.00, minStock: 20 },
+    { vendor: "DisplayTech", name: "Monitor 24 inch", unit: "pcs", rate: 120.00, minStock: 5 },
+    { vendor: "AccessoryHub", name: "HDMI Cable", unit: "pcs", rate: 6.00, minStock: 15 },
+    { vendor: "VisionTech", name: "Webcam", unit: "pcs", rate: 45.00, minStock: 5 }
+];
+
+// Load data from localStorage
 function loadData() {
-    const storedProducts = localStorage.getItem(STORAGE_PRODUCTS);
+    const storedProducts = localStorage.getItem("inventory_products");
     if (storedProducts) {
         products = JSON.parse(storedProducts);
     } else {
-        // Sample data
-        products = [
-            { id: 1, vendor: 'TechPro', name: 'Wireless Mouse', unit: 'pcs', rate: 25.00, stock: 45, minStock: 10, lastUpdated: new Date().toISOString() },
-            { id: 2, vendor: 'LogiTech', name: 'Keyboard', unit: 'pcs', rate: 35.00, stock: 7, minStock: 10, lastUpdated: new Date().toISOString() },
-            { id: 3, vendor: 'CableWorld', name: 'USB Type-C Cable', unit: 'pcs', rate: 8.00, stock: 120, minStock: 20, lastUpdated: new Date().toISOString() },
-            { id: 4, vendor: 'DisplayTech', name: 'Monitor 24 inch', unit: 'pcs', rate: 120.00, stock: 5, minStock: 5, lastUpdated: new Date().toISOString() },
-            { id: 5, vendor: 'AccessoryHub', name: 'HDMI Cable', unit: 'pcs', rate: 6.00, stock: 60, minStock: 15, lastUpdated: new Date().toISOString() },
-            { id: 6, vendor: 'VisionTech', name: 'Webcam', unit: 'pcs', rate: 45.00, stock: 3, minStock: 5, lastUpdated: new Date().toISOString() }
-        ];
-        saveData();
+        products = [...defaultProducts];
     }
 
-    const storedHistory = localStorage.getItem(STORAGE_HISTORY);
-    if (storedHistory) {
-        stockHistory = JSON.parse(storedHistory);
+    const storedStock = localStorage.getItem("inventory_stock");
+    if (storedStock) {
+        stockData = JSON.parse(storedStock);
     } else {
-        stockHistory = [];
+        stockData = {};
         products.forEach(p => {
-            addToHistory(p.id, p.name, 'INITIAL', p.stock, 0, p.stock, 'Initial stock');
+            stockData[p.name] = { 
+                qty: Math.floor(Math.random() * 50) + 5, 
+                minStock: p.minStock, 
+                updated: new Date().toLocaleString() 
+            };
         });
-        saveData();
     }
 
-    renderAll();
+    const storedHistory = localStorage.getItem("inventory_history");
+    if (storedHistory) {
+        historyData = JSON.parse(storedHistory);
+    } else {
+        historyData = [];
+    }
+
+    updateDateTime();
+    renderProducts();
+    updateDashboard();
+    populateDropdowns();
+    renderHistory();
+    updateLastUpdated();
+
+    setInterval(updateDateTime, 1000);
 }
 
-function saveData() {
-    localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(products));
-    localStorage.setItem(STORAGE_HISTORY, JSON.stringify(stockHistory));
+function saveAll() {
+    localStorage.setItem("inventory_products", JSON.stringify(products));
+    localStorage.setItem("inventory_stock", JSON.stringify(stockData));
+    localStorage.setItem("inventory_history", JSON.stringify(historyData));
+    updateLastUpdated();
 }
 
-function addToHistory(productId, productName, type, quantity, oldStock, newStock, note) {
-    stockHistory.unshift({
-        id: Date.now(),
-        date: new Date().toISOString(),
-        productId,
-        productName,
-        type,
-        quantity,
-        previousStock: oldStock,
-        newStock,
-        userNote: note
-    });
-    saveData();
+function updateLastUpdated() {
+    document.getElementById("lastUpdated").innerText = "Last Updated: " + new Date().toLocaleString();
 }
 
-function renderAll() {
-    updateStats();
-    renderProductsTable();
-    renderHistoryTable();
-    renderLowStockTable();
-    updateSelectors();
+function updateDateTime() {
+    const now = new Date();
+    document.getElementById("currentDate").innerHTML = now.toLocaleDateString() + " | " + now.toLocaleTimeString();
 }
 
-function updateStats() {
-    document.getElementById('totalProducts').innerText = products.length;
-    const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-    document.getElementById('totalStock').innerText = totalStock;
-    const lowCount = products.filter(p => p.stock <= p.minStock).length;
-    document.getElementById('lowStockCount').innerText = lowCount;
-    const totalValue = products.reduce((sum, p) => sum + (p.stock * p.rate), 0);
-    document.getElementById('totalValue').innerHTML = `${currentCurrency}${totalValue.toFixed(2)}`;
+function showToast(message, type = "success") {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.style.backgroundColor = type === "success" ? "#16a34a" : "#dc2626";
+    toast.className = "toast show";
+    setTimeout(() => {
+        toast.className = "toast";
+    }, 3000);
 }
 
-function renderProductsTable() {
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    let filtered = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) || 
-        p.vendor.toLowerCase().includes(searchTerm)
-    );
+function showSection(sectionId) {
+    document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active-section"));
+    document.getElementById(sectionId).classList.add("active-section");
     
-    const start = (currentPage - 1) * itemsPerPage;
-    const paginated = filtered.slice(start, start + itemsPerPage);
-    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    document.querySelectorAll(".menu li").forEach(li => li.classList.remove("active"));
+    event.currentTarget.classList.add("active");
+}
+
+function renderProducts() {
+    const tbody = document.getElementById("productTable");
+    const searchTerm = document.getElementById("searchInput").value.toLowerCase();
     
-    const tbody = document.getElementById('productsTableBody');
-    if (paginated.length === 0) {
+    let filteredProducts = products;
+    if (searchTerm) {
+        filteredProducts = products.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) || 
+            p.vendor.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    tbody.innerHTML = "";
+    
+    if (filteredProducts.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">No products found</td></tr>';
-        document.getElementById('entriesInfo').innerHTML = 'Showing 0 of 0 entries';
         return;
     }
     
-    tbody.innerHTML = paginated.map(p => `
-        <tr ${p.stock <= p.minStock ? 'class="low-stock-row"' : ''}>
-            <td>${p.id}</td>
-            <td>${escapeHtml(p.vendor)}</td>
-            <td><strong>${escapeHtml(p.name)}</strong></td>
-            <td>${escapeHtml(p.unit)}</td>
-            <td>${currentCurrency}${p.rate.toFixed(2)}</td>
-            <td>${p.stock}</td>
-            <td>${p.minStock}</td>
-            <td>${new Date(p.lastUpdated).toLocaleDateString()}</td>
-            <td>
-                <button class="btn btn-blue" style="padding:4px 12px;font-size:12px;" onclick="editProduct(${p.id})">Edit</button>
-                <button class="btn btn-red" style="padding:4px 12px;font-size:12px;margin-left:5px;" onclick="deleteProduct(${p.id})">Delete</button>
-            </td>
-        </tr>
-    `).join('');
-    
-    document.getElementById('entriesInfo').innerHTML = `Showing ${start + 1} to ${Math.min(start + itemsPerPage, filtered.length)} of ${filtered.length} entries`;
-    renderPagination(totalPages);
+    filteredProducts.forEach((product, idx) => {
+        const originalIndex = products.findIndex(p => p.name === product.name && p.vendor === product.vendor);
+        const stock = stockData[product.name]?.qty || 0;
+        const min = stockData[product.name]?.minStock || product.minStock || 5;
+        
+        let status = "OK";
+        let statusClass = "status-ok";
+        if (stock <= 0) {
+            status = "OUT";
+            statusClass = "status-out";
+        } else if (stock <= min) {
+            status = "LOW";
+            statusClass = "status-low";
+        }
+        
+        tbody.innerHTML += `
+            <tr>
+                <td><input type="radio" name="productSelect" class="selected-checkbox" onclick="selectProduct(${originalIndex})"></td>
+                <td>${escapeHtml(product.vendor)}</td>
+                <td><strong>${escapeHtml(product.name)}</strong></td>
+                <td>${escapeHtml(product.unit)}</td>
+                <td>$${product.rate.toFixed(2)}</td>
+                <td>${stock}</td>
+                <td>${min}</td>
+                <td><span class="${statusClass}">${status}</span></td>
+                <td>${stockData[product.name]?.updated || "-"}</td>
+            </tr>
+        `;
+    });
 }
 
-function renderPagination(totalPages) {
-    const container = document.getElementById('pagination');
-    if (!container) return;
-    if (totalPages <= 1) {
-        container.innerHTML = '';
+function selectProduct(index) {
+    selectedProductIndex = index;
+}
+
+function openAddProductModal() {
+    document.getElementById("modalTitle").innerText = "Add Product";
+    document.getElementById("editProductIndex").value = "";
+    document.getElementById("vendor").value = "";
+    document.getElementById("productName").value = "";
+    document.getElementById("unit").value = "pcs";
+    document.getElementById("rate").value = "";
+    document.getElementById("modalMinStock").value = "5";
+    document.getElementById("productModal").style.display = "block";
+}
+
+function editSelectedProduct() {
+    if (selectedProductIndex === null || selectedProductIndex === undefined) {
+        showToast("Please select a product first", "error");
         return;
     }
-    
-    let html = '';
-    for (let i = 1; i <= Math.min(totalPages, 5); i++) {
-        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    const product = products[selectedProductIndex];
+    document.getElementById("modalTitle").innerText = "Edit Product";
+    document.getElementById("editProductIndex").value = selectedProductIndex;
+    document.getElementById("vendor").value = product.vendor;
+    document.getElementById("productName").value = product.name;
+    document.getElementById("unit").value = product.unit;
+    document.getElementById("rate").value = product.rate;
+    document.getElementById("modalMinStock").value = stockData[product.name]?.minStock || product.minStock || 5;
+    document.getElementById("productModal").style.display = "block";
+}
+
+function deleteSelectedProduct() {
+    if (selectedProductIndex === null || selectedProductIndex === undefined) {
+        showToast("Please select a product first", "error");
+        return;
     }
-    container.innerHTML = html;
-}
-
-function goToPage(page) {
-    currentPage = page;
-    renderProductsTable();
-}
-
-function editProduct(id) {
-    const product = products.find(p => p.id === id);
-    if (product) {
-        currentEditId = id;
-        document.getElementById('modalTitle').innerText = 'Edit Product';
-        document.getElementById('editProductId').value = id;
-        document.getElementById('modalVendor').value = product.vendor;
-        document.getElementById('modalName').value = product.name;
-        document.getElementById('modalUnit').value = product.unit;
-        document.getElementById('modalRate').value = product.rate;
-        document.getElementById('modalStock').value = product.stock;
-        document.getElementById('modalMinStock').value = product.minStock;
-        document.getElementById('productModal').style.display = 'flex';
-    }
-}
-
-function deleteProduct(id) {
-    if (confirm('Are you sure you want to delete this product?')) {
-        const product = products.find(p => p.id === id);
-        products = products.filter(p => p.id !== id);
-        addToHistory(id, product.name, 'DELETE', product.stock, product.stock, 0, 'Product deleted');
-        saveData();
-        renderAll();
+    if (confirm("Are you sure you want to delete this product?")) {
+        const product = products[selectedProductIndex];
+        delete stockData[product.name];
+        products.splice(selectedProductIndex, 1);
+        selectedProductIndex = null;
+        saveAll();
+        renderProducts();
+        updateDashboard();
+        populateDropdowns();
+        showToast("Product deleted successfully!", "success");
     }
 }
 
 function saveProduct() {
-    const vendor = document.getElementById('modalVendor').value.trim();
-    const name = document.getElementById('modalName').value.trim();
-    const unit = document.getElementById('modalUnit').value.trim();
-    const rate = parseFloat(document.getElementById('modalRate').value);
-    const stock = parseInt(document.getElementById('modalStock').value);
-    const minStock = parseInt(document.getElementById('modalMinStock').value);
-    const editId = document.getElementById('editProductId').value;
+    const vendor = document.getElementById("vendor").value.trim();
+    const name = document.getElementById("productName").value.trim();
+    const unit = document.getElementById("unit").value.trim();
+    const rate = parseFloat(document.getElementById("rate").value);
+    const minStock = parseInt(document.getElementById("modalMinStock").value);
+    const editIndex = document.getElementById("editProductIndex").value;
     
-    if (!vendor || !name) {
-        alert('Vendor and Product Name are required');
+    if (!vendor || !name || isNaN(rate)) {
+        showToast("Please fill all required fields", "error");
         return;
     }
     
-    if (editId) {
-        const index = products.findIndex(p => p.id == editId);
-        if (index !== -1) {
-            const oldStock = products[index].stock;
-            products[index] = { ...products[index], vendor, name, unit, rate, stock, minStock, lastUpdated: new Date().toISOString() };
-            if (oldStock !== stock) {
-                addToHistory(products[index].id, name, 'ADJUSTMENT', Math.abs(stock - oldStock), oldStock, stock, 'Manual adjustment');
-            }
+    if (editIndex !== "") {
+        // Edit existing product
+        const oldProduct = products[editIndex];
+        const oldName = oldProduct.name;
+        products[editIndex] = { vendor, name, unit, rate, minStock };
+        if (oldName !== name) {
+            stockData[name] = stockData[oldName];
+            delete stockData[oldName];
         }
+        if (stockData[name]) {
+            stockData[name].minStock = minStock;
+        }
+        addToHistory(name, "EDIT", 0, 0, 0, `Product edited: ${oldName} → ${name}`);
+        showToast("Product updated successfully!", "success");
     } else {
-        const newId = Date.now();
-        products.push({
-            id: newId, vendor, name, unit, rate, stock, minStock,
-            lastUpdated: new Date().toISOString()
-        });
-        addToHistory(newId, name, 'INITIAL', stock, 0, stock, 'Product created');
+        // Add new product
+        if (products.find(p => p.name === name && p.vendor === vendor)) {
+            showToast("Product already exists!", "error");
+            return;
+        }
+        products.push({ vendor, name, unit, rate, minStock });
+        if (!stockData[name]) {
+            stockData[name] = { qty: 0, minStock: minStock, updated: new Date().toLocaleString() };
+        }
+        addToHistory(name, "ADD", 0, 0, 0, "New product created");
+        showToast("Product added successfully!", "success");
     }
     
-    saveData();
+    saveAll();
+    renderProducts();
+    updateDashboard();
+    populateDropdowns();
     closeModal();
-    renderAll();
 }
 
-function processStockIn() {
-    const productId = parseInt(document.getElementById('stockInProduct').value);
-    const qty = parseInt(document.getElementById('stockInQty').value);
-    const note = document.getElementById('stockInNote').value;
+function stockIn() {
+    const productName = document.getElementById("stockInProduct").value;
+    const qty = parseInt(document.getElementById("stockInQty").value);
+    const note = document.getElementById("stockInNote").value;
     
-    if (!productId || !qty || qty <= 0) {
-        showMessage('stockInMsg', 'Select product and valid quantity', 'error');
+    if (!productName || !qty || qty <= 0) {
+        showMessage("stockInMsg", "Please select product and valid quantity", "error");
         return;
     }
     
-    const product = products.find(p => p.id === productId);
-    if (product) {
-        const oldStock = product.stock;
-        product.stock += qty;
-        product.lastUpdated = new Date().toISOString();
-        addToHistory(product.id, product.name, 'IN', qty, oldStock, product.stock, note);
-        saveData();
-        renderAll();
-        showMessage('stockInMsg', `Added ${qty} ${product.unit} to ${product.name}`, 'success');
-        document.getElementById('stockInQty').value = '';
-        document.getElementById('stockInNote').value = '';
+    if (!stockData[productName]) {
+        stockData[productName] = { qty: 0, minStock: 5 };
     }
+    
+    const oldQty = stockData[productName].qty;
+    stockData[productName].qty += qty;
+    stockData[productName].updated = new Date().toLocaleString();
+    
+    addToHistory(productName, "IN", qty, oldQty, stockData[productName].qty, note);
+    saveAll();
+    renderProducts();
+    updateDashboard();
+    
+    document.getElementById("stockInQty").value = "";
+    document.getElementById("stockInNote").value = "";
+    showMessage("stockInMsg", `✅ Added ${qty} units to ${productName}`, "success");
+    showToast(`Added ${qty} units to ${productName}`, "success");
 }
 
-function processStockOut() {
-    const productId = parseInt(document.getElementById('stockOutProduct').value);
-    const qty = parseInt(document.getElementById('stockOutQty').value);
-    const note = document.getElementById('stockOutNote').value;
+function stockOut() {
+    const productName = document.getElementById("stockOutProduct").value;
+    const qty = parseInt(document.getElementById("stockOutQty").value);
+    const note = document.getElementById("stockOutNote").value;
     
-    if (!productId || !qty || qty <= 0) {
-        showMessage('stockOutMsg', 'Select product and valid quantity', 'error');
+    if (!productName || !qty || qty <= 0) {
+        showMessage("stockOutMsg", "Please select product and valid quantity", "error");
         return;
     }
     
-    const product = products.find(p => p.id === productId);
-    if (product && product.stock >= qty) {
-        const oldStock = product.stock;
-        product.stock -= qty;
-        product.lastUpdated = new Date().toISOString();
-        addToHistory(product.id, product.name, 'OUT', qty, oldStock, product.stock, note);
-        saveData();
-        renderAll();
-        showMessage('stockOutMsg', `Removed ${qty} ${product.unit} from ${product.name}`, 'success');
-        document.getElementById('stockOutQty').value = '';
-        document.getElementById('stockOutNote').value = '';
-    } else {
-        showMessage('stockOutMsg', `Insufficient stock! Available: ${product?.stock || 0}`, 'error');
+    if (!stockData[productName]) {
+        stockData[productName] = { qty: 0, minStock: 5 };
     }
-}
-
-function processAdjustment() {
-    const productId = parseInt(document.getElementById('adjustProduct').value);
-    const newQty = parseInt(document.getElementById('adjustNewQty').value);
-    const reason = document.getElementById('adjustReason').value;
     
-    if (!productId || isNaN(newQty) || newQty < 0) {
-        showMessage('adjustMsg', 'Select product and valid quantity', 'error');
+    if (stockData[productName].qty < qty) {
+        showMessage("stockOutMsg", `Insufficient stock! Only ${stockData[productName].qty} available`, "error");
         return;
     }
     
-    const product = products.find(p => p.id === productId);
-    if (product) {
-        const oldStock = product.stock;
-        product.stock = newQty;
-        product.lastUpdated = new Date().toISOString();
-        addToHistory(product.id, product.name, 'ADJUSTMENT', Math.abs(newQty - oldStock), oldStock, newQty, reason);
-        saveData();
-        renderAll();
-        showMessage('adjustMsg', `Adjusted ${product.name} stock to ${newQty}`, 'success');
-        document.getElementById('adjustNewQty').value = '';
-        document.getElementById('adjustReason').value = '';
-    }
+    const oldQty = stockData[productName].qty;
+    stockData[productName].qty -= qty;
+    stockData[productName].updated = new Date().toLocaleString();
+    
+    addToHistory(productName, "OUT", qty, oldQty, stockData[productName].qty, note);
+    saveAll();
+    renderProducts();
+    updateDashboard();
+    
+    document.getElementById("stockOutQty").value = "";
+    document.getElementById("stockOutNote").value = "";
+    showMessage("stockOutMsg", `✅ Removed ${qty} units from ${productName}`, "success");
+    showToast(`Removed ${qty} units from ${productName}`, "success");
 }
 
-function renderHistoryTable() {
-    const tbody = document.getElementById('historyTableBody');
-    if (stockHistory.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No history available</td></tr>';
+function adjustStock() {
+    const productName = document.getElementById("adjustProduct").value;
+    const newQty = parseInt(document.getElementById("adjustQty").value);
+    const reason = document.getElementById("adjustReason").value;
+    
+    if (!productName || isNaN(newQty) || newQty < 0) {
+        showMessage("adjustMsg", "Please select product and valid quantity", "error");
         return;
     }
     
-    tbody.innerHTML = stockHistory.slice(0, 50).map(h => `
-        <tr>
-            <td>${new Date(h.date).toLocaleString()}</td>
-            <td><strong>${escapeHtml(h.productName)}</strong></td>
-            <td><span style="color:${h.type === 'IN' ? '#16a34a' : (h.type === 'OUT' ? '#dc2626' : '#7c3aed')}">${h.type}</span></td>
-            <td>${h.quantity}</td>
-            <td>${h.previousStock}</td>
-            <td>${h.newStock}</td>
-            <td>${escapeHtml(h.userNote) || '-'}</td>
-        </tr>
-    `).join('');
-}
-
-function renderLowStockTable() {
-    const lowStock = products.filter(p => p.stock <= p.minStock);
-    const tbody = document.getElementById('lowStockTableBody');
-    
-    if (lowStock.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No low stock items</td></tr>';
-        return;
+    if (!stockData[productName]) {
+        stockData[productName] = { qty: 0, minStock: 5 };
     }
     
-    tbody.innerHTML = lowStock.map(p => `
-        <tr class="low-stock-row">
-            <td><strong>${escapeHtml(p.name)}</strong></td>
-            <td>${escapeHtml(p.vendor)}</td>
-            <td style="color:#dc2626;font-weight:bold;">${p.stock}</td>
-            <td>${p.minStock}</td>
-            <td>⚠️ Critical</td>
-            <td><button class="btn btn-green" style="padding:4px 12px;" onclick="quickRestock(${p.id})">Restock</button></td>
-        </table>
-    `).join('');
-}
-
-function quickRestock(id) {
-    const qty = prompt('Enter quantity to add:');
-    if (qty && parseInt(qty) > 0) {
-        const product = products.find(p => p.id === id);
-        if (product) {
-            const oldStock = product.stock;
-            product.stock += parseInt(qty);
-            product.lastUpdated = new Date().toISOString();
-            addToHistory(product.id, product.name, 'IN', parseInt(qty), oldStock, product.stock, 'Quick restock');
-            saveData();
-            renderAll();
-        }
-    }
-}
-
-function updateSelectors() {
-    const selects = ['stockInProduct', 'stockOutProduct', 'adjustProduct'];
-    selects.forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.innerHTML = '<option value="">-- Select Product --</option>' + 
-                products.map(p => `<option value="${p.id}">${p.name} (${p.vendor}) - Stock: ${p.stock}</option>`).join('');
-        }
-    });
+    const oldQty = stockData[productName].qty;
+    stockData[productName].qty = newQty;
+    stockData[productName].updated = new Date().toLocaleString();
     
-    const today = new Date().toISOString().split('T')[0];
-    ['stockInDate', 'stockOutDate', 'adjustDate'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && !el.value) el.value = today;
-    });
-}
-
-function exportInventory() {
-    const headers = ['ID', 'Vendor', 'Product Name', 'Unit', 'Rate', 'Stock', 'Min Stock', 'Last Updated'];
-    const rows = [headers];
-    products.forEach(p => {
-        rows.push([p.id, p.vendor, p.name, p.unit, p.rate, p.stock, p.minStock, p.lastUpdated]);
-    });
-    downloadCSV(rows, `inventory_${new Date().toISOString().split('T')[0]}.csv`);
-    showMessage('importExportMsg', 'Inventory exported!', 'success');
-}
-
-function exportHistory() {
-    const headers = ['Date', 'Product', 'Type', 'Quantity', 'Previous Stock', 'New Stock', 'Note'];
-    const rows = [headers];
-    stockHistory.forEach(h => {
-        rows.push([h.date, h.productName, h.type, h.quantity, h.previousStock, h.newStock, h.userNote]);
-    });
-    downloadCSV(rows, `history_${new Date().toISOString().split('T')[0]}.csv`);
-    showMessage('importExportMsg', 'History exported!', 'success');
-}
-
-function importCSV() {
-    const file = document.getElementById('csvFileInput').files[0];
-    if (!file) {
-        showMessage('importExportMsg', 'Select a CSV file', 'error');
-        return;
-    }
+    addToHistory(productName, "ADJUST", Math.abs(newQty - oldQty), oldQty, newQty, reason);
+    saveAll();
+    renderProducts();
+    updateDashboard();
     
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const text = e.target.result;
-        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/^"|"$/g, '')));
-        let imported = 0;
-        
-        for (let i = 1; i < rows.length; i++) {
-            const cols = rows[i];
-            if (cols.length >= 4 && cols[1]) {
-                if (!products.find(p => p.name === cols[1] && p.vendor === cols[0])) {
-                    products.push({
-                        id: Date.now() + i,
-                        vendor: cols[0],
-                        name: cols[1],
-                        unit: cols[2] || 'pcs',
-                        rate: parseFloat(cols[3]) || 0,
-                        stock: 0,
-                        minStock: 5,
-                        lastUpdated: new Date().toISOString()
-                    });
-                    imported++;
-                }
-            }
-        }
-        saveData();
-        renderAll();
-        showMessage('importExportMsg', `Imported ${imported} products!`, 'success');
-    };
-    reader.readAsText(file);
-}
-
-function downloadCSV(rows, filename) {
-    const csv = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(link.href);
-}
-
-function showMessage(elementId, message, type) {
-    const el = document.getElementById(elementId);
-    if (el) {
-        el.innerHTML = message;
-        el.className = `message ${type}`;
-        setTimeout(() => {
-            el.style.display = 'none';
-        }, 3000);
-    }
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-function closeModal() {
-    document.getElementById('productModal').style.display = 'none';
-    document.getElementById('editProductId').value = '';
-    currentEditId = null;
-}
-
-// Navigation
-function initNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const pages = document.querySelectorAll('.page');
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const pageId = link.dataset.page;
-            
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-            
-            pages.forEach(page => page.classList.remove('active'));
-            document.getElementById(`${pageId}-page`).classList.add('active');
-        });
-    });
-}
-
-// Event listeners
-function bindEvents() {
-    document.getElementById('addProductBtn')?.addEventListener('click', () => {
-        currentEditId = null;
-        document.getElementById('modalTitle').innerText = 'Add Product';
-        document.getElementById('editProductId').value = '';
-        document.getElementById('modalVendor').value = '';
-        document.getElementById('modalName').value = '';
-        document.getElementById('modalUnit').value = 'pcs';
-        document.getElementById('modalRate').value = '0';
-        document.getElementById('modalStock').value = '0';
-        document.getElementById('modalMinStock').value = '5';
-        document.getElementById('productModal').style.display = 'flex';
-    });
-    
-    document.getElementById('editProductBtn')?.addEventListener('click', () => {
-        alert('Select a product from the table and click Edit');
-    });
-    
-    document.getElementById('deleteProductBtn')?.addEventListener('click', () => {
-        alert('Select a product from the table and click Delete');
-    });
-    
-    document.getElementById('stockInTopBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-page="stock-in"]').click();
-    });
-    
-    document.getElementById('stockOutTopBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-page="stock-out"]').click();
-    });
-    
-    document.getElementById('adjustmentTopBtn')?.addEventListener('click', () => {
-        document.querySelector('[data-page="adjustment"]').click();
-    });
-    
-    document.getElementById('modalSaveBtn')?.addEventListener('click', saveProduct);
-    document.querySelector('.close')?.addEventListener('click', closeModal);
-    document.getElementById('processStockInBtn')?.addEventListener('click', processStockIn);
-    document.getElementById('processStockOutBtn')?.addEventListener('click', processStockOut);
-    document.getElementById('processAdjustBtn')?.addEventListener('click', processAdjustment);
-    document.getElementById('csvImportBtn')?.addEventListener('click', () => document.getElementById('import-page').style.display !== 'none' ? null : document.querySelector('[data-page="import"]').click());
-    document.getElementById('csvExportBtn')?.addEventListener('click', exportInventory);
-    document.getElementById('importCsvBtn')?.addEventListener('click', importCSV);
-    document.getElementById('exportInventoryBtn')?.addEventListener('click', exportInventory);
-    document.getElementById('exportHistoryBtn')?.addEventListener('click', exportHistory);
-    document.getElementById('searchInput')?.addEventListener('keyup', () => {
-        currentPage = 1;
-        renderProductsTable();
-    });
-    
-    window.onclick = function(event) {
-        const modal = document.getElementById('productModal');
-        if (event.target === modal) closeModal();
-    };
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    loadData();
-    initNavigation();
-    bindEvents();
-});
+    document.getElementById("adjustQty").value = "";
+    document.getElementById("adjustReason").value = "";
+    showMessage("adjustMsg", `✅ Adjusted ${productName} stock to ${
