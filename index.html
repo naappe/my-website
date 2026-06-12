@@ -3,615 +3,605 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Manager - Professional Inventory System</title>
+    <title>Stock Manager Pro</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family: 'Segoe UI', sans-serif;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #f0f2f5;
-            color: #333;
-        }
-
-        /* Layout */
-        .app-container {
-            display: flex;
-            min-height: 100vh;
+        body{
+            background:#f4f6f9;
+            display:flex;
         }
 
         /* Sidebar */
-        .sidebar {
-            width: 260px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
+        .sidebar{
+            width:260px;
+            min-height:100vh;
+            background:linear-gradient(180deg,#071a3a,#021024);
+            color:#fff;
+            position:fixed;
+            left:0;
+            top:0;
         }
 
-        .sidebar-header {
-            padding: 25px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        .logo{
+            padding:25px;
+            font-size:28px;
+            font-weight:700;
+            border-bottom:1px solid rgba(255,255,255,.1);
         }
 
-        .sidebar-header h2 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
+        .sidebar ul{
+            list-style:none;
+            padding:20px 0;
         }
 
-        .sidebar-header p {
-            font-size: 0.8rem;
-            opacity: 0.8;
+        .sidebar ul li{
+            padding:15px 25px;
+            cursor:pointer;
+            transition:.3s;
         }
 
-        .nav-menu {
-            list-style: none;
-            padding: 20px 0;
+        .sidebar ul li:hover{
+            background:#0f2f68;
         }
 
-        .nav-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .sidebar ul li.active{
+            background:#2457d6;
+            border-radius:10px;
+            margin:0 10px;
+            padding-left:15px;
         }
 
-        .nav-item:hover {
-            background: rgba(255,255,255,0.1);
+        /* Main */
+        .main{
+            margin-left:260px;
+            width:calc(100% - 260px);
+            padding:25px;
         }
 
-        .nav-item.active {
-            background: rgba(255,255,255,0.2);
-            border-left: 3px solid #ffc107;
+        /* Header */
+        .top-bar{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
         }
 
-        .nav-item span:first-child {
-            font-size: 1.2rem;
+        .top-bar h1{
+            font-size:34px;
+            color:#222;
         }
 
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            padding: 20px;
+        .last-update{
+            color:#666;
+            font-size:15px;
         }
 
-        /* Top Bar */
-        .top-bar {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        /* Action Buttons */
+        .action-buttons{
+            display:flex;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-bottom:25px;
         }
 
-        .top-bar h1 {
-            font-size: 1.8rem;
-            color: #1e3c72;
+        .btn{
+            border:none;
+            color:#fff;
+            padding:14px 22px;
+            border-radius:8px;
+            cursor:pointer;
+            font-size:15px;
+            font-weight:600;
+            transition:.3s;
         }
 
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+        .btn:hover{
+            transform:translateY(-2px);
         }
 
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+        .green{background:#28a745;}
+        .blue{background:#1d63ff;}
+        .red{background:#dc3545;}
+        .orange{background:#fd7e14;}
+        .purple{background:#6f42c1;}
+
+        /* Search */
+        .search-box{
+            background:#fff;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 2px 10px rgba(0,0,0,.08);
+            display:flex;
+            gap:10px;
+            margin-bottom:25px;
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        .search-box input{
+            flex:1;
+            padding:14px;
+            border:1px solid #ddd;
+            border-radius:8px;
+            font-size:14px;
         }
 
-        .stat-card h3 {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .search-box input:focus{
+            outline:none;
+            border-color:#1d63ff;
         }
 
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1e3c72;
+        .search-box button{
+            background:#1d63ff;
+            color:#fff;
+            border:none;
+            padding:14px 25px;
+            border-radius:8px;
+            cursor:pointer;
+            transition:.3s;
         }
 
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #28a745;
+        .search-box button:hover{
+            background:#0f52d6;
         }
 
-        /* Search Bar */
-        .search-bar {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        /* Summary Cards */
+        .cards{
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:20px;
+            margin-bottom:25px;
         }
 
-        .search-bar input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
+        .card{
+            background:#fff;
+            padding:25px;
+            border-radius:12px;
+            box-shadow:0 2px 10px rgba(0,0,0,.08);
+            transition:.3s;
         }
 
-        .search-bar input:focus {
-            outline: none;
-            border-color: #2a5298;
+        .card:hover{
+            transform:translateY(-3px);
+            box-shadow:0 4px 15px rgba(0,0,0,.1);
         }
 
-        /* Content Cards */
-        .content-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            display: none;
+        .card h3{
+            color:#666;
+            margin-bottom:10px;
+            font-size:15px;
         }
 
-        .content-card.active {
-            display: block;
+        .card p{
+            font-size:32px;
+            font-weight:bold;
         }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f2f5;
+        .card.products{
+            border-left:5px solid #1d63ff;
         }
 
-        .card-header h2 {
-            color: #1e3c72;
-            font-size: 1.3rem;
+        .card.stock{
+            border-left:5px solid #28a745;
         }
 
-        /* Form Styles */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+        .card.low{
+            border-left:5px solid #ffc107;
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        .card.value{
+            border-left:5px solid #6f42c1;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #555;
+        /* Table */
+        .table-container{
+            background:#fff;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 2px 10px rgba(0,0,0,.08);
+            overflow-x:auto;
         }
 
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 14px;
+        table{
+            width:100%;
+            border-collapse:collapse;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #2a5298;
+        thead{
+            background:#f8f9fa;
         }
 
-        button {
-            background: #2a5298;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
+        th{
+            padding:14px;
+            text-align:left;
+            border-bottom:2px solid #ddd;
+            font-weight:600;
+            color:#555;
         }
 
-        button:hover {
-            background: #1e3c72;
-            transform: translateY(-1px);
+        td{
+            padding:14px;
+            border-bottom:1px solid #eee;
         }
 
-        .btn-danger {
-            background: #dc3545;
+        tr:hover{
+            background:#fafafa;
         }
 
-        .btn-danger:hover {
-            background: #c82333;
+        /* Status */
+        .status-normal{
+            color:#28a745;
+            font-weight:bold;
         }
 
-        .btn-success {
-            background: #28a745;
+        .status-low{
+            color:#dc3545;
+            font-weight:bold;
         }
 
-        .btn-success:hover {
-            background: #218838;
+        .status-out{
+            color:#ff9800;
+            font-weight:bold;
         }
 
-        .btn-warning {
-            background: #ffc107;
-            color: #333;
+        /* Action Icons */
+        .edit-btn{
+            background:#1d63ff;
+            color:#fff;
+            border:none;
+            padding:8px 12px;
+            border-radius:5px;
+            cursor:pointer;
+            margin-right:5px;
+            transition:.2s;
         }
 
-        .btn-warning:hover {
-            background: #e0a800;
+        .edit-btn:hover{
+            background:#0f52d6;
         }
 
-        .btn-info {
-            background: #17a2b8;
+        .delete-btn{
+            background:#dc3545;
+            color:#fff;
+            border:none;
+            padding:8px 12px;
+            border-radius:5px;
+            cursor:pointer;
+            transition:.2s;
         }
 
-        /* Table Styles */
-        .table-container {
-            overflow-x: auto;
+        .delete-btn:hover{
+            background:#c82333;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .history-btn{
+            background:#6f42c1;
+            color:#fff;
+            border:none;
+            padding:8px 12px;
+            border-radius:5px;
+            cursor:pointer;
+            margin-right:5px;
+            transition:.2s;
         }
 
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
+        .history-btn:hover{
+            background:#5a32a3;
         }
 
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #555;
-            font-size: 0.85rem;
-        }
-
-        tr:hover {
-            background: #f8f9fa;
-        }
-
-        .low-stock-row {
-            background: #fff3cd;
-        }
-
-        .stock-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .stock-ok {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .stock-low {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .stock-out {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .action-buttons button {
-            padding: 5px 10px;
-            font-size: 12px;
+        /* Low Stock Alert */
+        .low-stock-warning{
+            background:#fff3cd;
+            color:#856404;
+            padding:15px;
+            border-left:5px solid #ffc107;
+            border-radius:8px;
+            margin-bottom:20px;
         }
 
         /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+        .modal{
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,0.5);
+            z-index:1000;
+            justify-content:center;
+            align-items:center;
         }
 
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            width: 600px;
-            max-width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+        .modal-content{
+            background:#fff;
+            padding:30px;
+            border-radius:12px;
+            width:600px;
+            max-width:90%;
+            max-height:80vh;
+            overflow-y:auto;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        .modal-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
+            padding-bottom:10px;
+            border-bottom:2px solid #eee;
         }
 
-        .close {
-            cursor: pointer;
-            font-size: 24px;
-            color: #999;
+        .close{
+            cursor:pointer;
+            font-size:28px;
+            color:#999;
+            transition:.2s;
+        }
+
+        .close:hover{
+            color:#333;
+        }
+
+        /* Form */
+        .form-group{
+            margin-bottom:15px;
+        }
+
+        .form-group label{
+            display:block;
+            margin-bottom:5px;
+            font-weight:500;
+            color:#555;
+        }
+
+        .form-group input,
+        .form-group select{
+            width:100%;
+            padding:10px;
+            border:1px solid #ddd;
+            border-radius:5px;
+            font-size:14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus{
+            outline:none;
+            border-color:#1d63ff;
         }
 
         /* Messages */
-        .message {
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            display: none;
+        .message{
+            padding:12px;
+            border-radius:8px;
+            margin-bottom:15px;
+            display:none;
         }
 
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .message.success{
+            background:#d4edda;
+            color:#155724;
+            border:1px solid #c3e6cb;
         }
 
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .message.error{
+            background:#f8d7da;
+            color:#721c24;
+            border:1px solid #f5c6cb;
         }
 
-        .footer-info {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            color: #666;
-            font-size: 0.85rem;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 0;
-                transform: translateX(-100%);
+        /* Responsive */
+        @media(max-width:900px){
+            .sidebar{
+                width:100%;
+                position:relative;
+                min-height:auto;
             }
-            .main-content {
-                margin-left: 0;
+            .main{
+                margin-left:0;
+                width:100%;
+            }
+            body{
+                flex-direction:column;
+            }
+            .action-buttons{
+                flex-direction:column;
+            }
+            .search-box{
+                flex-direction:column;
             }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>📦 Stock Manager</h2>
-                <p>Inventory Management System</p>
+    <div class="sidebar">
+        <div class="logo">
+            📦 Stock Manager
+        </div>
+        <ul>
+            <li class="active" data-page="dashboard">📊 Dashboard</li>
+            <li data-page="products">📦 Products</li>
+            <li data-page="stock-in">📥 Stock IN</li>
+            <li data-page="stock-out">📤 Stock OUT</li>
+            <li data-page="adjustment">⚙️ Stock Adjustment</li>
+            <li data-page="history">📜 Stock History</li>
+            <li data-page="low-stock">⚠️ Low Stock</li>
+            <li data-page="settings">⚙️ Settings</li>
+        </ul>
+    </div>
+
+    <div class="main">
+        <!-- Dashboard Page -->
+        <div id="dashboard-page">
+            <div class="top-bar">
+                <h1>Dashboard</h1>
+                <div class="last-update">Last Updated: <span id="lastUpdated">-</span></div>
             </div>
-            <ul class="nav-menu">
-                <li class="nav-item active" data-page="dashboard">
-                    <span>📊</span> Dashboard
-                </li>
-                <li class="nav-item" data-page="products">
-                    <span>📦</span> Products
-                </li>
-                <li class="nav-item" data-page="stock-in">
-                    <span>📥</span> Stock In
-                </li>
-                <li class="nav-item" data-page="stock-out">
-                    <span>📤</span> Stock Out
-                </li>
-                <li class="nav-item" data-page="adjustment">
-                    <span>⚙️</span> Stock Adjustment
-                </li>
-                <li class="nav-item" data-page="history">
-                    <span>📜</span> Stock Movement History
-                </li>
-                <li class="nav-item" data-page="import-export">
-                    <span>🔄</span> Import / Export
-                </li>
-                <li class="nav-item" data-page="low-stock">
-                    <span>⚠️</span> Low Stock Warning
-                </li>
-                <li class="nav-item" data-page="settings">
-                    <span>⚙️</span> Settings
-                </li>
-                <li class="nav-item" data-page="about">
-                    <span>ℹ️</span> About
-                </li>
-            </ul>
+
+            <div class="cards">
+                <div class="card products">
+                    <h3>Total Products</h3>
+                    <p id="totalProducts">0</p>
+                </div>
+                <div class="card stock">
+                    <h3>Total Stock</h3>
+                    <p id="totalStock">0</p>
+                </div>
+                <div class="card low">
+                    <h3>Low Stock Items</h3>
+                    <p id="lowStockCount">0</p>
+                </div>
+                <div class="card value">
+                    <h3>Total Value</h3>
+                    <p id="totalValue">$0</p>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, SKU, or category...">
+                <button onclick="searchProducts()">🔍 Search</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Stock</th>
+                            <th>Unit Price</th>
+                            <th>Threshold</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardTable"></tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Dashboard Page -->
-            <div id="dashboard" class="content-card active">
-                <div class="top-bar">
-                    <h1>Dashboard</h1>
-                </div>
-                <div class="stats-grid" id="statsGrid">
-                    <!-- Stats will be populated here -->
-                </div>
-                <div class="search-bar">
-                    <input type="text" id="dashboardSearch" placeholder="Search by name, SKU, or barcode..." onkeyup="searchDashboard()">
-                </div>
-                <div class="content-card" style="padding: 0;">
-                    <div class="table-container">
-                        <table id="dashboardTable">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Product Name</th>
-                                    <th>SKU</th>
-                                    <th>Category</th>
-                                    <th>Stock</th>
-                                    <th>Unit Price</th>
-                                    <th>Low Stock Threshold</th>
-                                    <th>Value</th>
-                                    <th>Last Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dashboardTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="footer-info">
-                        <div id="entriesInfo">Showing 1 to 6 of 6 entries</div>
-                        <div>Last Updated: <span id="lastUpdatedTime">-</span></div>
-                    </div>
-                </div>
+        <!-- Products Page (Hidden by default) -->
+        <div id="products-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Products Management</h1>
             </div>
 
-            <!-- Products Page -->
-            <div id="products" class="content-card">
-                <div class="card-header">
-                    <h2>Products Management</h2>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Product Name</label>
-                        <input type="text" id="prodName" placeholder="Product Name">
-                    </div>
-                    <div class="form-group">
-                        <label>SKU</label>
-                        <input type="text" id="prodSKU" placeholder="SKU (e.g., WM-001)">
-                    </div>
-                    <div class="form-group">
-                        <label>Category</label>
-                        <input type="text" id="prodCategory" placeholder="Category">
-                    </div>
-                    <div class="form-group">
-                        <label>Initial Stock</label>
-                        <input type="number" id="prodStock" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Unit Price ($)</label>
-                        <input type="number" id="prodPrice" value="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Low Stock Threshold</label>
-                        <input type="number" id="prodThreshold" value="10">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
-                        <button onclick="addProduct()">Add Product</button>
-                    </div>
-                </div>
-                <div id="productMessage" class="message"></div>
+            <div class="action-buttons">
+                <button class="btn green" onclick="showAddProductForm()">➕ Add Product</button>
+                <button class="btn blue" onclick="exportCSV()">📤 Export CSV</button>
+                <button class="btn orange" onclick="importCSV()">📥 Import CSV</button>
             </div>
 
-            <!-- Stock In Page -->
-            <div id="stock-in" class="content-card">
-                <div class="card-header">
-                    <h2>Stock In</h2>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Select Product</label>
-                        <select id="stockInProduct"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantity to Add</label>
-                        <input type="number" id="stockInQty" placeholder="Quantity">
-                    </div>
-                    <div class="form-group">
-                        <label>Note / Reference</label>
-                        <input type="text" id="stockInNote" placeholder="Purchase order, supplier, etc.">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
-                        <button onclick="processStockIn()" class="btn-success">Add Stock</button>
-                    </div>
-                </div>
-                <div id="stockInMessage" class="message"></div>
+            <div id="productMessage" class="message"></div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Stock</th>
+                            <th>Unit Price</th>
+                            <th>Threshold</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stock In Page -->
+        <div id="stockin-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Stock IN</h1>
             </div>
 
-            <!-- Stock Out Page -->
-            <div id="stock-out" class="content-card">
-                <div class="card-header">
-                    <h2>Stock Out</h2>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Select Product</label>
-                        <select id="stockOutProduct"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantity to Remove</label>
-                        <input type="number" id="stockOutQty" placeholder="Quantity">
-                    </div>
-                    <div class="form-group">
-                        <label>Note / Reference</label>
-                        <input type="text" id="stockOutNote" placeholder="Customer, department, etc.">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
-                        <button onclick="processStockOut()" class="btn-danger">Remove Stock</button>
-                    </div>
-                </div>
-                <div id="stockOutMessage" class="message"></div>
-            </div>
-
-            <!-- Stock Adjustment Page -->
-            <div id="adjustment" class="content-card">
-                <div class="card-header">
-                    <h2>Stock Adjustment</h2>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Select Product</label>
-                        <select id="adjustProduct"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>New Stock Value</label>
-                        <input type="number" id="adjustNewStock" placeholder="Set exact stock count">
-                    </div>
-                    <div class="form-group">
-                        <label>Reason for Adjustment</label>
-                        <input type="text" id="adjustReason" placeholder="Inventory count, damage, etc.">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
-                        <button onclick="processAdjustment()" class="btn-warning">Apply Adjustment</button>
-                    </div>
-                </div>
-                <div id="adjustMessage" class="message"></div>
-            </div>
-
-            <!-- History Page -->
-            <div id="history" class="content-card">
-                <div class="card-header">
-                    <h2>Stock Movement History</h2>
+            <div class="table-container">
+                <div class="form-group">
+                    <label>Select Product</label>
+                    <select id="stockInProduct"></select>
                 </div>
                 <div class="form-group">
+                    <label>Quantity to Add</label>
+                    <input type="number" id="stockInQty" placeholder="Enter quantity">
+                </div>
+                <div class="form-group">
+                    <label>Note / Reference</label>
+                    <input type="text" id="stockInNote" placeholder="Purchase order, supplier...">
+                </div>
+                <button class="btn green" onclick="processStockIn()">Add Stock</button>
+                <div id="stockInMessage" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Stock Out Page -->
+        <div id="stockout-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Stock OUT</h1>
+            </div>
+
+            <div class="table-container">
+                <div class="form-group">
+                    <label>Select Product</label>
+                    <select id="stockOutProduct"></select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity to Remove</label>
+                    <input type="number" id="stockOutQty" placeholder="Enter quantity">
+                </div>
+                <div class="form-group">
+                    <label>Note / Reference</label>
+                    <input type="text" id="stockOutNote" placeholder="Customer, department...">
+                </div>
+                <button class="btn red" onclick="processStockOut()">Remove Stock</button>
+                <div id="stockOutMessage" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Stock Adjustment Page -->
+        <div id="adjustment-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Stock Adjustment</h1>
+            </div>
+
+            <div class="table-container">
+                <div class="form-group">
+                    <label>Select Product</label>
+                    <select id="adjustProduct"></select>
+                </div>
+                <div class="form-group">
+                    <label>New Stock Value</label>
+                    <input type="number" id="adjustNewStock" placeholder="Set exact stock count">
+                </div>
+                <div class="form-group">
+                    <label>Reason for Adjustment</label>
+                    <input type="text" id="adjustReason" placeholder="Inventory count, damage...">
+                </div>
+                <button class="btn orange" onclick="processAdjustment()">Apply Adjustment</button>
+                <div id="adjustMessage" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Stock History Page -->
+        <div id="history-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Stock Movement History</h1>
+            </div>
+
+            <div class="table-container">
+                <div class="form-group">
                     <label>Filter by Product</label>
-                    <select id="historyFilter" onchange="loadHistory()">
-                        <option value="all">All Products</option>
-                    </select>
+                    <select id="historyFilter" onchange="loadHistory()"></select>
                 </div>
                 <div class="table-container">
                     <table>
@@ -626,139 +616,142 @@
                                 <th>Note</th>
                             </tr>
                         </thead>
-                        <tbody id="historyTableBody"></tbody>
+                        <tbody id="historyTable"></tbody>
                     </table>
                 </div>
             </div>
+        </div>
 
-            <!-- Import/Export Page -->
-            <div id="import-export" class="content-card">
-                <div class="card-header">
-                    <h2>Import / Export Data</h2>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Import CSV File</label>
-                        <input type="file" id="csvFile" accept=".csv">
-                        <button onclick="importCSV()" style="margin-top: 10px;" class="btn-success">Import CSV</button>
-                    </div>
-                    <div class="form-group">
-                        <label>Export Data</label>
-                        <button onclick="exportCSV()" class="btn-info">Export to CSV</button>
-                        <button onclick="exportJSON()" style="margin-top: 10px;" class="btn-info">Export to JSON</button>
-                    </div>
-                    <div class="form-group">
-                        <label>Download Template</label>
-                        <button onclick="downloadTemplate()" class="btn-warning">Download CSV Template</button>
-                    </div>
-                </div>
-                <div id="importMessage" class="message"></div>
+        <!-- Low Stock Page -->
+        <div id="lowstock-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Low Stock Warning</h1>
             </div>
 
-            <!-- Low Stock Warning Page -->
-            <div id="low-stock" class="content-card">
-                <div class="card-header">
-                    <h2>⚠️ Low Stock Warning</h2>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Product Name</th>
-                                <th>SKU</th>
-                                <th>Current Stock</th>
-                                <th>Threshold</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lowStockTableBody"></tbody>
-                    </table>
-                </div>
+            <div id="lowStockWarning" class="low-stock-warning"></div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Current Stock</th>
+                            <th>Threshold</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lowStockTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings-page" style="display:none;">
+            <div class="top-bar">
+                <h1>Settings</h1>
             </div>
 
-            <!-- Settings Page -->
-            <div id="settings" class="content-card">
-                <div class="card-header">
-                    <h2>Settings</h2>
+            <div class="table-container">
+                <div class="form-group">
+                    <label>Company Name</label>
+                    <input type="text" id="companyName" placeholder="Company Name">
                 </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Company Name</label>
-                        <input type="text" id="companyName" placeholder="Company Name">
-                    </div>
-                    <div class="form-group">
-                        <label>Default Low Stock Threshold</label>
-                        <input type="number" id="defaultThreshold" value="10">
-                    </div>
-                    <div class="form-group">
-                        <label>Currency Symbol</label>
-                        <select id="currencySymbol">
-                            <option value="$">$ USD</option>
-                            <option value="€">€ EUR</option>
-                            <option value="£">£ GBP</option>
-                            <option value="¥">¥ JPY</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>Default Low Stock Threshold</label>
+                    <input type="number" id="defaultThreshold" value="10">
                 </div>
-                <button onclick="saveSettings()">Save Settings</button>
-                <button onclick="resetData()" class="btn-danger" style="margin-left: 10px;">Reset All Data</button>
+                <div class="form-group">
+                    <label>Currency Symbol</label>
+                    <select id="currencySymbol">
+                        <option value="$">$ USD</option>
+                        <option value="€">€ EUR</option>
+                        <option value="£">£ GBP</option>
+                        <option value="¥">¥ JPY</option>
+                    </select>
+                </div>
+                <button class="btn blue" onclick="saveSettings()">Save Settings</button>
+                <button class="btn red" onclick="resetAllData()">Reset All Data</button>
                 <div id="settingsMessage" class="message"></div>
-            </div>
-
-            <!-- About Page -->
-            <div id="about" class="content-card">
-                <div class="card-header">
-                    <h2>About Stock Manager</h2>
-                </div>
-                <div style="line-height: 1.8;">
-                    <p><strong>Version:</strong> 2.0.0</p>
-                    <p><strong>Features:</strong></p>
-                    <ul style="margin-left: 20px; margin-top: 10px;">
-                        <li>✓ Add Product</li>
-                        <li>✓ Edit Product</li>
-                        <li>✓ Delete Product</li>
-                        <li>✓ Stock IN</li>
-                        <li>✓ Stock OUT</li>
-                        <li>✓ Stock Adjustment</li>
-                        <li>✓ Search Functionality</li>
-                        <li>✓ Stock Movement History</li>
-                        <li>✓ CSV Import/Export</li>
-                        <li>✓ Low Stock Warning</li>
-                        <li>✓ Local Storage Database</li>
-                        <li>✓ Last Updated Tracking</li>
-                    </ul>
-                    <p style="margin-top: 20px;"><strong>Developed with:</strong> HTML5, CSS3, JavaScript</p>
-                    <p><strong>Data Storage:</strong> Local Storage (persistent)</p>
-                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Sample product data
-        let products = [
-            { id: 1, name: "Wireless Mouse", sku: "WM-001", category: "Electronics", stock: 45, price: 25.00, threshold: 10, history: [], lastUpdated: "2025-05-25T10:30:00" },
-            { id: 2, name: "Keyboard", sku: "KB-002", category: "Electronics", stock: 7, price: 35.00, threshold: 10, history: [], lastUpdated: "2025-05-25T09:15:00" },
-            { id: 3, name: "USB Type-C Cable", sku: "UC-003", category: "Accessories", stock: 120, price: 8.00, threshold: 20, history: [], lastUpdated: "2025-05-25T08:50:00" },
-            { id: 4, name: "Monitor 24 inch", sku: "MN-004", category: "Electronics", stock: 5, price: 120.00, threshold: 5, history: [], lastUpdated: "2025-05-25T10:10:00" },
-            { id: 5, name: "HDMI Cable", sku: "HD-005", category: "Accessories", stock: 60, price: 6.00, threshold: 15, history: [], lastUpdated: "2025-05-25T09:05:00" },
-            { id: 6, name: "Webcam", sku: "WC-006", category: "Electronics", stock: 3, price: 45.00, threshold: 5, history: [], lastUpdated: "2025-05-25T08:20:00" }
-        ];
+    <!-- Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Product</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="modalProductName" placeholder="Product Name">
+            </div>
+            <div class="form-group">
+                <label>SKU</label>
+                <input type="text" id="modalProductSKU" placeholder="SKU (e.g., WM-001)">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <input type="text" id="modalProductCategory" placeholder="Category">
+            </div>
+            <div class="form-group">
+                <label>Initial Stock</label>
+                <input type="number" id="modalProductStock" value="0">
+            </div>
+            <div class="form-group">
+                <label>Unit Price ($)</label>
+                <input type="number" id="modalProductPrice" value="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Low Stock Threshold</label>
+                <input type="number" id="modalProductThreshold" value="10">
+            </div>
+            <button class="btn green" onclick="saveProduct()">Save Product</button>
+            <input type="hidden" id="editProductId">
+        </div>
+    </div>
 
+    <script>
+        let products = [];
         let settings = {
             companyName: "My Company",
             defaultThreshold: 10,
             currencySymbol: "$"
         };
 
-        // Load data from localStorage
+        // Sample data
+        function initSampleData() {
+            products = [
+                { id: 1, name: "Wireless Mouse", sku: "WM-001", category: "Electronics", stock: 45, price: 25.00, threshold: 10, history: [] },
+                { id: 2, name: "Keyboard", sku: "KB-002", category: "Electronics", stock: 7, price: 35.00, threshold: 10, history: [] },
+                { id: 3, name: "USB Type-C Cable", sku: "UC-003", category: "Accessories", stock: 120, price: 8.00, threshold: 20, history: [] },
+                { id: 4, name: "Monitor 24 inch", sku: "MN-004", category: "Electronics", stock: 5, price: 120.00, threshold: 5, history: [] },
+                { id: 5, name: "HDMI Cable", sku: "HD-005", category: "Accessories", stock: 60, price: 6.00, threshold: 15, history: [] },
+                { id: 6, name: "Webcam", sku: "WC-006", category: "Electronics", stock: 3, price: 45.00, threshold: 5, history: [] }
+            ];
+            
+            products.forEach(p => {
+                p.history.push({
+                    date: new Date().toLocaleString(),
+                    type: 'initial',
+                    quantity: p.stock,
+                    oldStock: 0,
+                    newStock: p.stock,
+                    note: 'Initial stock setup'
+                });
+            });
+        }
+
         function loadData() {
-            const savedProducts = localStorage.getItem('stockProducts');
-            if (savedProducts) {
-                products = JSON.parse(savedProducts);
+            const saved = localStorage.getItem('stockProducts');
+            if (saved) {
+                products = JSON.parse(saved);
             } else {
-                addSampleHistory();
+                initSampleData();
+                saveData();
             }
             
             const savedSettings = localStorage.getItem('stockSettings');
@@ -772,85 +765,60 @@
             updateAll();
         }
 
-        function addSampleHistory() {
-            products.forEach(p => {
-                p.history = p.history || [];
-                p.history.push({
-                    date: new Date(p.lastUpdated).toLocaleString(),
-                    type: 'initial',
-                    quantity: p.stock,
-                    oldStock: 0,
-                    newStock: p.stock,
-                    note: 'Initial stock setup'
-                });
-            });
-        }
-
-        function saveToLocalStorage() {
+        function saveData() {
             localStorage.setItem('stockProducts', JSON.stringify(products));
+            localStorage.setItem('lastUpdated', new Date().toISOString());
             updateLastUpdated();
         }
 
         function updateLastUpdated() {
-            const now = new Date().toLocaleString();
-            document.getElementById('lastUpdatedTime').innerText = now;
+            const lastUpdated = localStorage.getItem('lastUpdated');
+            if (lastUpdated) {
+                document.getElementById('lastUpdated').innerText = new Date(lastUpdated).toLocaleString();
+            }
         }
 
         function updateAll() {
             updateStats();
-            updateDashboardTable();
-            updateProductSelects();
+            renderDashboard();
+            renderProductsTable();
+            updateSelects();
             loadHistory();
-            loadLowStockTable();
+            renderLowStock();
         }
 
         function updateStats() {
             const totalProducts = products.length;
             const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-            const lowStockItems = products.filter(p => p.stock <= p.threshold).length;
+            const lowStockCount = products.filter(p => p.stock <= p.threshold).length;
             const totalValue = products.reduce((sum, p) => sum + (p.stock * p.price), 0);
             
-            document.getElementById('statsGrid').innerHTML = `
-                <div class="stat-card">
-                    <h3>Total Products</h3>
-                    <div class="stat-number">${totalProducts}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Stock (All)</h3>
-                    <div class="stat-number">${totalStock.toLocaleString()}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Low Stock Items</h3>
-                    <div class="stat-number" style="color: #ffc107;">${lowStockItems}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Value</h3>
-                    <div class="stat-value">${settings.currencySymbol}${totalValue.toFixed(2)}</div>
-                </div>
-            `;
+            document.getElementById('totalProducts').innerText = totalProducts;
+            document.getElementById('totalStock').innerText = totalStock;
+            document.getElementById('lowStockCount').innerText = lowStockCount;
+            document.getElementById('totalValue').innerHTML = `${settings.currencySymbol}${totalValue.toFixed(2)}`;
         }
 
-        function updateDashboardTable() {
-            const tbody = document.getElementById('dashboardTableBody');
-            const searchTerm = document.getElementById('dashboardSearch')?.value.toLowerCase() || '';
+        function renderDashboard() {
+            const tbody = document.getElementById('dashboardTable');
+            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
             
             let filtered = products.filter(p => 
                 p.name.toLowerCase().includes(searchTerm) || 
-                p.sku.toLowerCase().includes(searchTerm)
+                p.sku.toLowerCase().includes(searchTerm) ||
+                p.category.toLowerCase().includes(searchTerm)
             );
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No products found</td></tr>';
-                document.getElementById('entriesInfo').innerHTML = 'Showing 0 of 0 entries';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No products found</td></tr>';
                 return;
             }
             
             tbody.innerHTML = '';
             filtered.forEach(p => {
                 const row = tbody.insertRow();
-                const isLow = p.stock <= p.threshold;
-                if (isLow) row.className = 'low-stock-row';
-                const value = p.stock * p.price;
+                const status = p.stock <= p.threshold ? (p.stock === 0 ? 'Out of Stock' : 'Low Stock') : 'Normal';
+                const statusClass = p.stock <= p.threshold ? (p.stock === 0 ? 'status-out' : 'status-low') : 'status-normal';
                 
                 row.insertCell(0).innerHTML = p.id;
                 row.insertCell(1).innerHTML = `<strong>${p.name}</strong>`;
@@ -859,139 +827,134 @@
                 row.insertCell(4).innerHTML = p.stock;
                 row.insertCell(5).innerHTML = `${settings.currencySymbol}${p.price.toFixed(2)}`;
                 row.insertCell(6).innerHTML = p.threshold;
-                row.insertCell(7).innerHTML = `<strong>${settings.currencySymbol}${value.toFixed(2)}</strong>`;
-                row.insertCell(8).innerHTML = p.lastUpdated ? new Date(p.lastUpdated).toLocaleString() : '-';
+                row.insertCell(7).innerHTML = `<strong>${settings.currencySymbol}${(p.stock * p.price).toFixed(2)}</strong>`;
+                row.insertCell(8).innerHTML = `<span class="${statusClass}">${status}</span>`;
                 row.insertCell(9).innerHTML = `
-                    <div class="action-buttons">
-                        <button onclick="editProduct(${p.id})" class="btn-info">Edit</button>
-                        <button onclick="deleteProduct(${p.id})" class="btn-danger">Delete</button>
-                    </div>
+                    <button class="history-btn" onclick="showHistory(${p.id})">📜</button>
+                    <button class="edit-btn" onclick="editProduct(${p.id})">✏️</button>
+                    <button class="delete-btn" onclick="deleteProduct(${p.id})">🗑️</button>
                 `;
             });
-            
-            document.getElementById('entriesInfo').innerHTML = `Showing 1 to ${filtered.length} of ${filtered.length} entries`;
         }
 
-        function searchDashboard() {
-            updateDashboardTable();
-        }
-
-        function addProduct() {
-            const name = document.getElementById('prodName').value.trim();
-            const sku = document.getElementById('prodSKU').value.trim();
-            const category = document.getElementById('prodCategory').value.trim();
-            const stock = parseInt(document.getElementById('prodStock').value);
-            const price = parseFloat(document.getElementById('prodPrice').value);
-            const threshold = parseInt(document.getElementById('prodThreshold').value);
+        function renderProductsTable() {
+            const tbody = document.getElementById('productsTable');
+            if (!tbody) return;
             
-            if (!name || !sku) {
-                showMessage('Please fill product name and SKU', 'error', 'productMessage');
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No products found</td></tr>';
                 return;
             }
             
-            if (products.find(p => p.sku === sku)) {
-                showMessage('SKU already exists!', 'error', 'productMessage');
-                return;
-            }
-            
-            const newProduct = {
-                id: Date.now(),
-                name: name,
-                sku: sku,
-                category: category || 'Uncategorized',
-                stock: stock || 0,
-                price: price || 0,
-                threshold: threshold || settings.defaultThreshold,
-                history: [],
-                lastUpdated: new Date().toISOString()
-            };
-            
-            newProduct.history.push({
-                date: new Date().toLocaleString(),
-                type: 'add',
-                quantity: newProduct.stock,
-                oldStock: 0,
-                newStock: newProduct.stock,
-                note: 'Product created'
+            tbody.innerHTML = '';
+            products.forEach(p => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = p.id;
+                row.insertCell(1).innerHTML = `<strong>${p.name}</strong>`;
+                row.insertCell(2).innerHTML = p.sku;
+                row.insertCell(3).innerHTML = p.category;
+                row.insertCell(4).innerHTML = p.stock;
+                row.insertCell(5).innerHTML = `${settings.currencySymbol}${p.price.toFixed(2)}`;
+                row.insertCell(6).innerHTML = p.threshold;
+                row.insertCell(7).innerHTML = `
+                    <button class="edit-btn" onclick="editProduct(${p.id})">✏️ Edit</button>
+                    <button class="delete-btn" onclick="deleteProduct(${p.id})">🗑️ Delete</button>
+                `;
             });
-            
-            products.push(newProduct);
-            saveToLocalStorage();
-            updateAll();
-            
-            document.getElementById('prodName').value = '';
-            document.getElementById('prodSKU').value = '';
-            document.getElementById('prodCategory').value = '';
-            document.getElementById('prodStock').value = '0';
-            document.getElementById('prodPrice').value = '0';
-            document.getElementById('prodThreshold').value = settings.defaultThreshold;
-            
-            showMessage('Product added successfully!', 'success', 'productMessage');
+        }
+
+        function showAddProductForm() {
+            document.getElementById('modalTitle').innerText = 'Add Product';
+            document.getElementById('modalProductName').value = '';
+            document.getElementById('modalProductSKU').value = '';
+            document.getElementById('modalProductCategory').value = '';
+            document.getElementById('modalProductStock').value = '0';
+            document.getElementById('modalProductPrice').value = '0';
+            document.getElementById('modalProductThreshold').value = settings.defaultThreshold;
+            document.getElementById('editProductId').value = '';
+            document.getElementById('productModal').style.display = 'flex';
         }
 
         function editProduct(id) {
             const product = products.find(p => p.id === id);
             if (product) {
-                document.getElementById('prodName').value = product.name;
-                document.getElementById('prodSKU').value = product.sku;
-                document.getElementById('prodCategory').value = product.category;
-                document.getElementById('prodStock').value = product.stock;
-                document.getElementById('prodPrice').value = product.price;
-                document.getElementById('prodThreshold').value = product.threshold;
-                
-                // Temporarily change add button to update
-                const addBtn = document.querySelector('#products button');
-                addBtn.innerHTML = 'Update Product';
-                addBtn.setAttribute('onclick', `updateProduct(${id})`);
+                document.getElementById('modalTitle').innerText = 'Edit Product';
+                document.getElementById('modalProductName').value = product.name;
+                document.getElementById('modalProductSKU').value = product.sku;
+                document.getElementById('modalProductCategory').value = product.category;
+                document.getElementById('modalProductStock').value = product.stock;
+                document.getElementById('modalProductPrice').value = product.price;
+                document.getElementById('modalProductThreshold').value = product.threshold;
+                document.getElementById('editProductId').value = product.id;
+                document.getElementById('productModal').style.display = 'flex';
             }
         }
 
-        function updateProduct(id) {
-            const product = products.find(p => p.id === id);
-            if (product) {
-                const oldStock = product.stock;
-                product.name = document.getElementById('prodName').value.trim();
-                product.sku = document.getElementById('prodSKU').value.trim();
-                product.category = document.getElementById('prodCategory').value.trim();
-                product.stock = parseInt(document.getElementById('prodStock').value);
-                product.price = parseFloat(document.getElementById('prodPrice').value);
-                product.threshold = parseInt(document.getElementById('prodThreshold').value);
-                product.lastUpdated = new Date().toISOString();
-                
-                if (oldStock !== product.stock) {
-                    product.history.unshift({
-                        date: new Date().toLocaleString(),
-                        type: 'edit',
-                        quantity: Math.abs(product.stock - oldStock),
-                        oldStock: oldStock,
-                        newStock: product.stock,
-                        note: 'Product edited'
-                    });
+        function saveProduct() {
+            const id = document.getElementById('editProductId').value;
+            const name = document.getElementById('modalProductName').value.trim();
+            const sku = document.getElementById('modalProductSKU').value.trim();
+            const category = document.getElementById('modalProductCategory').value.trim();
+            const stock = parseInt(document.getElementById('modalProductStock').value);
+            const price = parseFloat(document.getElementById('modalProductPrice').value);
+            const threshold = parseInt(document.getElementById('modalProductThreshold').value);
+            
+            if (!name || !sku) {
+                showMessage('Please enter product name and SKU', 'error', 'productMessage');
+                return;
+            }
+            
+            if (id) {
+                // Update existing
+                const index = products.findIndex(p => p.id == id);
+                if (index !== -1) {
+                    const oldStock = products[index].stock;
+                    products[index] = { ...products[index], name, sku, category, stock, price, threshold };
+                    
+                    if (oldStock !== stock) {
+                        products[index].history.unshift({
+                            date: new Date().toLocaleString(),
+                            type: 'edit',
+                            quantity: Math.abs(stock - oldStock),
+                            oldStock: oldStock,
+                            newStock: stock,
+                            note: 'Product edited'
+                        });
+                    }
+                    showMessage('Product updated successfully!', 'success', 'productMessage');
+                }
+            } else {
+                // Add new
+                if (products.find(p => p.sku === sku)) {
+                    showMessage('SKU already exists!', 'error', 'productMessage');
+                    return;
                 }
                 
-                saveToLocalStorage();
-                updateAll();
-                
-                // Reset form
-                document.getElementById('prodName').value = '';
-                document.getElementById('prodSKU').value = '';
-                document.getElementById('prodCategory').value = '';
-                document.getElementById('prodStock').value = '0';
-                document.getElementById('prodPrice').value = '0';
-                document.getElementById('prodThreshold').value = settings.defaultThreshold;
-                
-                const addBtn = document.querySelector('#products button');
-                addBtn.innerHTML = 'Add Product';
-                addBtn.setAttribute('onclick', 'addProduct()');
-                
-                showMessage('Product updated successfully!', 'success', 'productMessage');
+                products.push({
+                    id: Date.now(),
+                    name, sku, category: category || 'Uncategorized',
+                    stock: stock || 0, price: price || 0, threshold: threshold || settings.defaultThreshold,
+                    history: [{
+                        date: new Date().toLocaleString(),
+                        type: 'add',
+                        quantity: stock || 0,
+                        oldStock: 0,
+                        newStock: stock || 0,
+                        note: 'Product created'
+                    }]
+                });
+                showMessage('Product added successfully!', 'success', 'productMessage');
             }
+            
+            saveData();
+            updateAll();
+            closeModal();
         }
 
         function deleteProduct(id) {
             if (confirm('Are you sure you want to delete this product?')) {
                 products = products.filter(p => p.id !== id);
-                saveToLocalStorage();
+                saveData();
                 updateAll();
                 showMessage('Product deleted successfully!', 'success', 'productMessage');
             }
@@ -1011,8 +974,6 @@
             if (product) {
                 const oldStock = product.stock;
                 product.stock += quantity;
-                product.lastUpdated = new Date().toISOString();
-                
                 product.history.unshift({
                     date: new Date().toLocaleString(),
                     type: 'in',
@@ -1022,12 +983,10 @@
                     note: note || 'Stock IN'
                 });
                 
-                saveToLocalStorage();
+                saveData();
                 updateAll();
-                
                 document.getElementById('stockInQty').value = '';
                 document.getElementById('stockInNote').value = '';
-                
                 showMessage(`Added ${quantity} units to ${product.name}`, 'success', 'stockInMessage');
             }
         }
@@ -1051,8 +1010,6 @@
                 
                 const oldStock = product.stock;
                 product.stock -= quantity;
-                product.lastUpdated = new Date().toISOString();
-                
                 product.history.unshift({
                     date: new Date().toLocaleString(),
                     type: 'out',
@@ -1062,12 +1019,10 @@
                     note: note || 'Stock OUT'
                 });
                 
-                saveToLocalStorage();
+                saveData();
                 updateAll();
-                
                 document.getElementById('stockOutQty').value = '';
                 document.getElementById('stockOutNote').value = '';
-                
                 showMessage(`Removed ${quantity} units from ${product.name}`, 'success', 'stockOutMessage');
             }
         }
@@ -1086,8 +1041,6 @@
             if (product) {
                 const oldStock = product.stock;
                 product.stock = newStock;
-                product.lastUpdated = new Date().toISOString();
-                
                 product.history.unshift({
                     date: new Date().toLocaleString(),
                     type: 'adjust',
@@ -1097,41 +1050,35 @@
                     note: reason || `Adjusted from ${oldStock} to ${newStock}`
                 });
                 
-                saveToLocalStorage();
+                saveData();
                 updateAll();
-                
                 document.getElementById('adjustNewStock').value = '';
                 document.getElementById('adjustReason').value = '';
-                
                 showMessage(`Adjusted ${product.name} stock to ${newStock} units`, 'success', 'adjustMessage');
             }
         }
 
         function loadHistory() {
-            const filter = document.getElementById('historyFilter').value;
-            const tbody = document.getElementById('historyTableBody');
+            const filter = document.getElementById('historyFilter')?.value;
+            const tbody = document.getElementById('historyTable');
             let allHistory = [];
             
             products.forEach(p => {
                 if (p.history) {
                     p.history.forEach(h => {
-                        allHistory.push({
-                            ...h,
-                            productName: p.name,
-                            productId: p.id
-                        });
+                        allHistory.push({ ...h, productName: p.name, productId: p.id });
                     });
                 }
             });
             
-            if (filter !== 'all') {
+            if (filter && filter !== 'all') {
                 allHistory = allHistory.filter(h => h.productId == filter);
             }
             
             allHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             if (allHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No history available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No history available</td></tr>';
                 return;
             }
             
@@ -1140,7 +1087,7 @@
                 const row = tbody.insertRow();
                 row.insertCell(0).innerHTML = h.date;
                 row.insertCell(1).innerHTML = h.productName;
-                row.insertCell(2).innerHTML = `<span class="stock-badge ${h.type === 'in' ? 'stock-ok' : 'stock-low'}">${h.type.toUpperCase()}</span>`;
+                row.insertCell(2).innerHTML = `<strong>${h.type.toUpperCase()}</strong>`;
                 row.insertCell(3).innerHTML = h.quantity;
                 row.insertCell(4).innerHTML = h.oldStock;
                 row.insertCell(5).innerHTML = h.newStock;
@@ -1148,14 +1095,19 @@
             });
         }
 
-        function loadLowStockTable() {
-            const tbody = document.getElementById('lowStockTableBody');
+        function renderLowStock() {
+            const tbody = document.getElementById('lowStockTable');
+            const warningDiv = document.getElementById('lowStockWarning');
             const lowStock = products.filter(p => p.stock <= p.threshold);
             
             if (lowStock.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No low stock items</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No low stock items</td></tr>';
+                warningDiv.style.display = 'none';
                 return;
             }
+            
+            warningDiv.style.display = 'block';
+            warningDiv.innerHTML = `⚠️ Warning: ${lowStock.length} product(s) are running low on stock! Please restock soon.`;
             
             tbody.innerHTML = '';
             lowStock.forEach(p => {
@@ -1163,14 +1115,14 @@
                 const status = p.stock === 0 ? 'Out of Stock' : 'Low Stock';
                 row.insertCell(0).innerHTML = p.name;
                 row.insertCell(1).innerHTML = p.sku;
-                row.insertCell(2).innerHTML = `<strong style="color: #dc3545;">${p.stock}</strong>`;
+                row.insertCell(2).innerHTML = `<strong style="color:#dc3545;">${p.stock}</strong>`;
                 row.insertCell(3).innerHTML = p.threshold;
-                row.insertCell(4).innerHTML = `<span class="stock-badge ${p.stock === 0 ? 'stock-out' : 'stock-low'}">${status}</span>`;
-                row.insertCell(5).innerHTML = `<button onclick="editProduct(${p.id})" class="btn-info">Restock</button>`;
+                row.insertCell(4).innerHTML = `<span class="${p.stock === 0 ? 'status-out' : 'status-low'}">${status}</span>`;
+                row.insertCell(5).innerHTML = `<button class="edit-btn" onclick="editProduct(${p.id})">Restock</button>`;
             });
         }
 
-        function updateProductSelects() {
+        function updateSelects() {
             const selects = ['stockInProduct', 'stockOutProduct', 'adjustProduct', 'historyFilter'];
             selects.forEach(selectId => {
                 const select = document.getElementById(selectId);
@@ -1186,56 +1138,29 @@
                 }
             });
             
-            // Add "All Products" option for history filter
             const historyFilter = document.getElementById('historyFilter');
             if (historyFilter) {
                 historyFilter.innerHTML = '<option value="all">All Products</option>' + historyFilter.innerHTML;
             }
         }
 
-        function importCSV() {
-            const file = document.getElementById('csvFile').files[0];
-            if (!file) {
-                showMessage('Please select a CSV file', 'error', 'importMessage');
-                return;
+        function showHistory(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product && product.history) {
+                let historyText = '📜 Stock Movement History\n\n';
+                product.history.forEach(h => {
+                    historyText += `${h.date} | ${h.type.toUpperCase()} | Qty: ${h.quantity} | ${h.oldStock} → ${h.newStock} | Note: ${h.note || '-'}\n`;
+                });
+                alert(historyText);
             }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const rows = text.split('\n');
-                const headers = rows[0].split(',');
-                
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i].split(',');
-                    if (row.length >= 7 && row[1]) {
-                        const newProduct = {
-                            id: Date.now() + i,
-                            name: row[1]?.trim() || '',
-                            sku: row[2]?.trim() || '',
-                            category: row[3]?.trim() || 'Uncategorized',
-                            stock: parseInt(row[4]) || 0,
-                            price: parseFloat(row[5]) || 0,
-                            threshold: parseInt(row[6]) || settings.defaultThreshold,
-                            history: [],
-                            lastUpdated: new Date().toISOString()
-                        };
-                        
-                        if (!products.find(p => p.sku === newProduct.sku) && newProduct.name) {
-                            products.push(newProduct);
-                        }
-                    }
-                }
-                
-                saveToLocalStorage();
-                updateAll();
-                showMessage('CSV imported successfully!', 'success', 'importMessage');
-            };
-            reader.readAsText(file);
+        }
+
+        function searchProducts() {
+            renderDashboard();
         }
 
         function exportCSV() {
-            const headers = ['ID', 'Product Name', 'SKU', 'Category', 'Stock', 'Unit Price', 'Low Stock Threshold', 'Total Value'];
+            const headers = ['ID', 'Product Name', 'SKU', 'Category', 'Stock', 'Unit Price', 'Threshold', 'Total Value'];
             const csvData = products.map(p => [
                 p.id, p.name, p.sku, p.category, p.stock, p.price, p.threshold, (p.stock * p.price).toFixed(2)
             ]);
@@ -1248,31 +1173,45 @@
             a.download = `stock_export_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             URL.revokeObjectURL(url);
-            showMessage('CSV exported successfully!', 'success', 'importMessage');
+            showMessage('CSV exported successfully!', 'success', 'productMessage');
         }
 
-        function exportJSON() {
-            const dataStr = JSON.stringify(products, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `stock_backup_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showMessage('JSON exported successfully!', 'success', 'importMessage');
-        }
-
-        function downloadTemplate() {
-            const template = [['ID', 'Product Name', 'SKU', 'Category', 'Stock', 'Unit Price', 'Low Stock Threshold']];
-            const csvContent = template.map(row => row.join(',')).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'stock_template.csv';
-            a.click();
-            URL.revokeObjectURL(url);
+        function importCSV() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const text = event.target.result;
+                    const rows = text.split('\n');
+                    for (let i = 1; i < rows.length; i++) {
+                        const cols = rows[i].split(',');
+                        if (cols.length >= 7 && cols[1]) {
+                            const newProduct = {
+                                id: Date.now() + i,
+                                name: cols[1]?.trim(),
+                                sku: cols[2]?.trim(),
+                                category: cols[3]?.trim() || 'Uncategorized',
+                                stock: parseInt(cols[4]) || 0,
+                                price: parseFloat(cols[5]) || 0,
+                                threshold: parseInt(cols[6]) || settings.defaultThreshold,
+                                history: []
+                            };
+                            
+                            if (!products.find(p => p.sku === newProduct.sku)) {
+                                products.push(newProduct);
+                            }
+                        }
+                    }
+                    saveData();
+                    updateAll();
+                    showMessage('CSV imported successfully!', 'success', 'productMessage');
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
 
         function saveSettings() {
@@ -1283,40 +1222,61 @@
             localStorage.setItem('stockSettings', JSON.stringify(settings));
             showMessage('Settings saved successfully!', 'success', 'settingsMessage');
             updateStats();
-            updateDashboardTable();
+            renderDashboard();
+            renderProductsTable();
         }
 
-        function resetData() {
-            if (confirm('WARNING: This will delete all your data! Are you sure?')) {
+        function resetAllData() {
+            if (confirm('WARNING: This will delete ALL your data! Are you sure?')) {
                 localStorage.clear();
-                location.reload();
+                initSampleData();
+                saveData();
+                updateAll();
+                showMessage('All data has been reset!', 'success', 'settingsMessage');
             }
         }
 
         function showMessage(msg, type, elementId) {
-            const messageDiv = document.getElementById(elementId);
-            messageDiv.innerHTML = msg;
-            messageDiv.className = `message ${type}`;
-            messageDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 3000);
+            const msgDiv = document.getElementById(elementId);
+            if (msgDiv) {
+                msgDiv.innerHTML = msg;
+                msgDiv.className = `message ${type}`;
+                msgDiv.style.display = 'block';
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                }, 3000);
+            }
         }
 
-        // Navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        // Page navigation
+        document.querySelectorAll('.sidebar ul li').forEach(item => {
             item.addEventListener('click', () => {
                 const page = item.dataset.page;
-                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                document.querySelectorAll('.sidebar ul li').forEach(li => li.classList.remove('active'));
                 item.classList.add('active');
-                document.querySelectorAll('.content-card').forEach(card => card.classList.remove('active'));
-                document.getElementById(page).classList.add('active');
                 
-                if (page === 'history') loadHistory();
-                if (page === 'low-stock') loadLowStockTable();
+                const pages = ['dashboard', 'products', 'stock-in', 'stock-out', 'adjustment', 'history', 'low-stock', 'settings'];
+                pages.forEach(p => {
+                    const pageDiv = document.getElementById(`${p}-page`);
+                    if (pageDiv) pageDiv.style.display = 'none';
+                });
+                
+                const activePage = document.getElementById(`${page}-page`);
+                if (activePage) activePage.style.display = 'block';
             });
         });
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
 
         // Initialize
         loadData();
