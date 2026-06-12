@@ -205,36 +205,6 @@
             font-size: 12px;
         }
 
-        /* Login Overlay */
-        .login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            width: 350px;
-            text-align: center;
-        }
-
-        .login-box h2 {
-            margin-bottom: 20px;
-        }
-
-        .login-box input {
-            margin-bottom: 20px;
-        }
-
         .error {
             color: #e74c3c;
             margin-top: 10px;
@@ -290,8 +260,8 @@
             </div>
         </div>
 
-        <!-- Main Content (hidden until login) -->
-        <div id="appContent" style="display: none;">
+        <!-- Main Content (always visible) -->
+        <div id="appContent">
             <!-- Add Product -->
             <div class="card">
                 <h2>➕ Add New Product</h2>
@@ -373,46 +343,11 @@
         </div>
     </div>
 
-    <!-- Login Overlay -->
-    <div id="loginOverlay" class="login-overlay">
-        <div class="login-box">
-            <h2>🔐 Admin Login</h2>
-            <input type="password" id="loginPassword" placeholder="Enter password">
-            <button onclick="login()" style="width: 100%;">Login</button>
-            <div id="loginError" class="error"></div>
-        </div>
-    </div>
-
     <script>
         let products = [];
 
-        // Check if already logged in
-        if (localStorage.getItem('loggedIn') === 'true') {
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-            loadProducts();
-        }
-
-        async function login() {
-            const password = document.getElementById('loginPassword').value;
-            
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: password })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                localStorage.setItem('loggedIn', 'true');
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('appContent').style.display = 'block';
-                loadProducts();
-            } else {
-                document.getElementById('loginError').innerText = 'Wrong password';
-            }
-        }
+        // Load products immediately (no login needed)
+        loadProducts();
 
         async function loadProducts() {
             try {
@@ -595,11 +530,6 @@
             setTimeout(() => {
                 messageDiv.style.display = 'none';
             }, 3000);
-        }
-
-        function logout() {
-            localStorage.removeItem('loggedIn');
-            location.reload();
         }
     </script>
 </body>
