@@ -106,14 +106,10 @@ app.post('/api/stock/delete', (req, res) => {
   res.json({ success: true });
 });
 
-// Simple login (hardcoded)
+// Simple login (no password required)
 app.post('/api/login', (req, res) => {
-  const { password } = req.body;
-  if (password === 'admin123') {
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
-  }
+  // Always return success - no password needed
+  res.json({ success: true });
 });
 
 const port = 3000;
