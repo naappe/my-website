@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Manager · CSV Import</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #f0f4f9; padding: 1.5rem; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+        .header h1 { font-size: 1.2rem; color: #0b2b4a; display: flex; align-items: center; gap: 0.5rem; }
+        .header h1 i { color: #2a7de1; }
+        
+        .btn { padding: 0.3rem 1.2rem; border-radius: 30px; border: none; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; }
+        .btn-primary { background: #0b2b4a; color: white; }
+        .btn-primary:hover { background: #1a3f62; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-success:hover { background: #388e3c; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #c62828; }
+        .btn-outline { background: transparent; border: 1px solid #dce2ec; color: #4e6b8a; }
+        .btn-outline:hover { background: #f0f4f9; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-warning:hover { background: #e68900; }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.2rem;
+            border: 1px solid #eef2f6;
+            margin-bottom: 1.2rem;
+        }
+        .card h3 { font-size: 0.9rem; color: #1c3b5e; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+        .stat-item {
+            background: white;
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            border: 1px solid #eef2f6;
+        }
+        .stat-item .label { font-size: 0.55rem; text-transform: uppercase; color: #6b7a8f; }
+        .stat-item .value { font-size: 1.4rem; font-weight: 700; color: #0a1e33; }
+        
+        .table-wrap {
+            max-height: 550px;
+            overflow-y: auto;
+            border-radius: 10px;
+        }
+        .table-wrap::-webkit-scrollbar { width: 6px; }
+        .table-wrap::-webkit-scrollbar-thumb { background: #dce2ec; border-radius: 4px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th {
+            text-align: left;
+            padding: 0.4rem 0.5rem;
+            color: #4e6b8a;
+            font-weight: 600;
+            border-bottom: 2px solid #e9eef5;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 2;
+        }
+        td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #f0f4fa; color: #1a2c44; }
+        tr:hover { background: #f8fafd; }
+        
+        .upload-zone {
+            border: 2px dashed #dce2ec;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .upload-zone:hover { border-color: #2a7de1; background: #f8faff; }
+        .upload-zone i { font-size: 2rem; color: #2a7de1; }
+        .upload-zone p { margin-top: 0.5rem; color: #6b7a8f; font-size: 0.85rem; }
+        .upload-zone input { display: none; }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0b2b4a;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; }
+        
+        .footer { margin-top: 1.5rem; text-align: center; font-size: 0.65rem; color: #7a8da3; }
+        .badge { background: #eef4ff; color: #1a4f8e; padding: 0.15rem 0.6rem; border-radius: 20px; font-size: 0.6rem; }
+        
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+        }
+        .search-box input {
+            padding: 0.3rem 0.8rem;
+            border: 1px solid #dce2ec;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            flex: 1;
+            min-width: 150px;
+        }
+        .search-box input:focus { outline: none; border-color: #2a7de1; }
+        
+        .pagination {
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0.8rem;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 0.2rem 0.6rem;
+            border: 1px solid #dce2ec;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .pagination button:hover { background: #f0f4f9; }
+        .pagination button.active { background: #0b2b4a; color: white; border-color: #0b2b4a; }
+        .pagination span { font-size: 0.7rem; color: #6b7a8f; }
+        .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .column-mapping {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .column-mapping .map-item {
+            background: #f8fafd;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            border: 1px solid #eef2f6;
+        }
+        .column-mapping .map-item .csv-col { font-weight: 600; color: #0b2b4a; }
+        .column-mapping .map-item .app-col { color: #4caf50; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-database"></i> Data Manager</h1>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+            <span class="badge" id="rowCount">0 rows</span>
+            <button class="btn btn-success" id="exportCSV"><i class="fas fa-download"></i> Export CSV</button>
+            <button class="btn btn-danger" id="clearAll"><i class="fas fa-trash"></i> Clear All</button>
+            <a href="index.html" class="btn btn-primary"><i class="fas fa-house"></i> Canvass</a>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-item"><div class="label">Total Voters</div><div class="value" id="totalVoters">0</div></div>
+        <div class="stat-item"><div class="label">Parties</div><div class="value" id="totalParties">0</div></div>
+        <div class="stat-item"><div class="label">Areas</div><div class="value" id="totalAreas">0</div></div>
+        <div class="stat-item"><div class="label">Knocked</div><div class="value" id="totalKnocked">0</div></div>
+        <div class="stat-item"><div class="label">Supporters</div><div class="value" id="totalSupporters">0</div></div>
+        <div class="stat-item"><div class="label">Last Updated</div><div class="value" id="lastUpdated" style="font-size:0.8rem;">—</div></div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fas fa-upload"></i> Upload CSV</h3>
+        <div class="upload-zone" id="uploadZone">
+            <i class="fas fa-file-csv"></i>
+            <p>Click to upload or drag &amp; drop your CSV file</p>
+            <p style="font-size:0.7rem;color:#8a9bb0;margin-top:0.2rem;">
+                Headers: Photo, Name, National ID, Const, District, House, Lives in, Phone, Party
+            </p>
+            <input type="file" id="csvUpload" accept=".csv" />
+        </div>
+        
+        <div id="mappingDisplay" style="display:none;margin-top:0.8rem;">
+            <h4 style="font-size:0.65rem;color:#1c3b5e;margin-bottom:0.3rem;">CSV to App Mapping</h4>
+            <div class="column-mapping" id="columnMapping"></div>
+            <div style="margin-top:0.5rem;font-size:0.65rem;color:#4caf50;" id="importStatus"></div>
+        </div>
+        
+        <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-outline" id="loadDemo"><i class="fas fa-play"></i> Load Demo</button>
+            <button class="btn btn-warning" id="loadFromPath"><i class="fas fa-folder-open"></i> Load from data.csv</button>
+            <span style="font-size:0.7rem;color:#6b7a8f;" id="uploadStatus">No file uploaded</span>
+            <span id="filePathStatus" style="font-size:0.65rem;color:#4caf50;"></span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fas fa-table"></i> Voter Data <span id="dataCount" style="font-size:0.7rem;color:#6b7a8f;font-weight:400;">(0 records)</span></h3>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by name, address, party..." />
+            <span style="font-size:0.7rem;color:#6b7a8f;" id="searchResult">Showing all</span>
+        </div>
+        
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Photo</th>
+                        <th>Name</th>
+                        <th>ID</th>
+                        <th>Address</th>
+                        <th>Party</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTable">
+                    <tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:2rem 0;">No data loaded</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination" id="pagination">
+            <button id="prevPage" disabled><i class="fas fa-chevron-left"></i></button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button id="nextPage" disabled><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <i class="fas fa-flag-checkered"></i> CSV maps to VoterRecord · Data syncs with Canvass via localStorage
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+    var voters = [];
+    var visitLogs = [];
+    var lastSaved = null;
+    var currentPage = 1;
+    var pageSize = 50;
+    var searchQuery = '';
+
+    var csvInput = document.getElementById('csvUpload');
+    var uploadZone = document.getElementById('uploadZone');
+    var uploadStatus = document.getElementById('uploadStatus');
+    var filePathStatus = document.getElementById('filePathStatus');
+    var dataTable = document.getElementById('dataTable');
+    var dataCount = document.getElementById('dataCount');
+    var totalVoters = document.getElementById('totalVoters');
+    var totalParties = document.getElementById('totalParties');
+    var totalAreas = document.getElementById('totalAreas');
+    var totalKnocked = document.getElementById('totalKnocked');
+    var totalSupporters = document.getElementById('totalSupporters');
+    var rowCount = document.getElementById('rowCount');
+    var lastUpdated = document.getElementById('lastUpdated');
+    var exportCSV = document.getElementById('exportCSV');
+    var clearAll = document.getElementById('clearAll');
+    var loadDemo = document.getElementById('loadDemo');
+    var loadFromPath = document.getElementById('loadFromPath');
+    var searchInput = document.getElementById('searchInput');
+    var searchResult = document.getElementById('searchResult');
+    var prevPage = document.getElementById('prevPage');
+    var nextPage = document.getElementById('nextPage');
+    var pageInfo = document.getElementById('pageInfo');
+    var toast = document.getElementById('toast');
+    var mappingDisplay = document.getElementById('mappingDisplay');
+    var columnMapping = document.getElementById('columnMapping');
+    var importStatus = document.getElementById('importStatus');
+
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(function() {
+            toast.classList.remove('show');
+        }, 2500);
+    }
+
+    function loadFromStorage() {
+        try {
+            var v = localStorage.getItem('crm_voters');
+            var l = localStorage.getItem('crm_visitlogs');
+            if (v) voters = JSON.parse(v);
+            if (l) visitLogs = JSON.parse(l);
+            lastSaved = localStorage.getItem('crm_last_saved') || new Date().toISOString();
+            return voters.length > 0;
+        } catch(e) { return false; }
+    }
+
+    function saveToStorage() {
+        try {
+            localStorage.setItem('crm_voters', JSON.stringify(voters));
+            localStorage.setItem('crm_visitlogs', JSON.stringify(visitLogs));
+            localStorage.setItem('crm_last_saved', new Date().toISOString());
+            lastSaved = new Date().toISOString();
+            return true;
+        } catch(e) { return false; }
+    }
+
+    function parseCSV(text) {
+        var lines = text.split(/\r?\n/).filter(function(line) { return line.trim() !== ''; });
+        if (lines.length < 2) { showToast('CSV needs header + data'); return []; }
+
+        var delimiter = lines[0].indexOf(';') > -1 ? ';' : ',';
+        var headers = lines[0].split(delimiter).map(function(h) { return h.trim().toLowerCase(); });
+
+        var colMap = {
+            photo: -1, name: -1, national_id: -1, constituency: -1,
+            district: -1, house: -1, lives_in: -1, phone: -1, party: -1
+        };
+        
+        for (var i = 0; i < headers.length; i++) {
+            var h = headers[i];
+            if (h === 'photo' || h.indexOf('photo') > -1) colMap.photo = i;
+            else if (h === 'name' || h.indexOf('name') > -1) colMap.name = i;
+            else if (h === 'national id' || h.indexOf('national') > -1 || h.indexOf('id') > -1) colMap.national_id = i;
+            else if (h === 'const' || h.indexOf('const') > -1) colMap.constituency = i;
+            else if (h === 'district' || h.indexOf('district') > -1) colMap.district = i;
+            else if (h === 'house' || h.indexOf('house') > -1) colMap.house = i;
+            else if (h === 'lives in' || h.indexOf('lives') > -1) colMap.lives_in = i;
+            else if (h === 'phone' || h.indexOf('phone') > -1) colMap.phone = i;
+            else if (h === 'party' || h.indexOf('party') > -1) colMap.party = i;
+        }
+
+        mappingDisplay.style.display = 'block';
+        var mapHtml = '';
+        var fields = ['photo','name','national_id','constituency','district','house','lives_in','phone','party'];
+        for (var f = 0; f < fields.length; f++) {
+            var field = fields[f];
+            var idx = colMap[field];
+            var found = idx >= 0 ? headers[idx] : '—';
+            var status = idx >= 0 ? '✅' : '❌';
+            mapHtml += '<div class="map-item">' +
+                '<span class="csv-col">' + status + ' ' + found + '</span>' +
+                '<span style="color:#6b7a8f;">→</span>' +
+                '<span class="app-col">' + field + '</span>' +
+                '</div>';
+        }
+        columnMapping.innerHTML = mapHtml;
+
+        if (colMap.name < 0) {
+            importStatus.innerHTML = '"Name" column not found!';
+            importStatus.style.color = '#f44336';
+            return [];
+        }
+
+        var result = [];
+        for (var i = 1; i < lines.length; i++) {
+            var cols = lines[i].split(delimiter).map(function(c) { return c.trim(); });
+            if (cols.length === 0 || cols.every(function(c) { return c === ''; })) continue;
+
+            var name = (colMap.name >= 0 && colMap.name < cols.length) ? cols[colMap.name] : '';
+            var photo = (colMap.photo >= 0 && colMap.photo < cols.length) ? cols[colMap.photo] : '';
+            var national_id = (colMap.national_id >= 0 && colMap.national_id < cols.length) ? cols[colMap.national_id] : '';
+            var constituency = (colMap.constituency >= 0 && colMap.constituency < cols.length) ? cols[colMap.constituency] : '';
+            var district = (colMap.district >= 0 && colMap.district < cols.length) ? cols[colMap.district] : '';
+            var house = (colMap.house >= 0 && colMap.house < cols.length) ? cols[colMap.house] : '';
+            var lives_in = (colMap.lives_in >= 0 && colMap.lives_in < cols.length) ? cols[colMap.lives_in] : '';
+            var phone = (colMap.phone >= 0 && colMap.phone < cols.length) ? cols[colMap.phone] : '';
+            var party = (colMap.party >= 0 && colMap.party < cols.length) ? cols[colMap.party] : '';
+
+            if (name) {
+                result.push({
+                    name: name,
+                    photo: photo || '',
+                    national_id: national_id || '',
+                    constituency: constituency || '',
+                    district: district || '',
+                    house: house || '',
+                    lives_in: lives_in || '',
+                    address: house || lives_in || 'No address',
+                    phone: phone || '',
+                    party: party || '',
+                    status: 'not_contacted',
+                    notes: '',
+                    supportLevel: 0,
+                    revisitPriority: 0,
+                    assigned_to: ''
+                });
+            }
+        }
+
+        importStatus.innerHTML = 'Mapped ' + result.length + ' rows successfully!';
+        importStatus.style.color = '#4caf50';
+        return result;
+    }
+
+    function loadCSVData(text, filename) {
+        var parsed = parseCSV(text);
+        if (parsed.length === 0) { showToast('No voters found'); return false; }
+        voters = parsed;
+        saveToStorage();
+        currentPage = 1;
+        render();
+        uploadStatus.textContent = '✅ ' + voters.length + ' voters from ' + filename;
+        filePathStatus.textContent = '📁 ' + filename + ' loaded';
+        showToast('Loaded ' + voters.length + ' voters!');
+        return true;
+    }
+
+    function getFilteredData() {
+        var result = voters.slice();
+        if (searchQuery.trim()) {
+            var q = searchQuery.trim().toLowerCase();
+            result = result.filter(function(v) {
+                return v.name.toLowerCase().indexOf(q) > -1 ||
+                    v.address.toLowerCase().indexOf(q) > -1 ||
+                    (v.party && v.party.toLowerCase().indexOf(q) > -1) ||
+                    (v.national_id && v.national_id.toLowerCase().indexOf(q) > -1);
+            });
+        }
+        return result;
+    }
+
+    function render() {
+        var filtered = getFilteredData();
+        var total = filtered.length;
+        var totalPages = Math.max(1, Math.ceil(total / pageSize));
+        
+        totalVoters.textContent = voters.length;
+        var parties = {};
+        for (var i = 0; i < voters.length; i++) {
+            var p = voters[i].party;
+            if (p) parties[p] = true;
+        }
+        totalParties.textContent = Object.keys(parties).length;
+        var areas = {};
+        for (var i = 0; i < voters.length; i++) {
+            var a = voters[i].address;
+            if (a) areas[a] = true;
+        }
+        totalAreas.textContent = Object.keys(areas).length;
+        totalKnocked.textContent = visitLogs.length;
+        var supporterCount = 0;
+        for (var i = 0; i < visitLogs.length; i++) {
+            if (visitLogs[i].outcome === 'supporter') supporterCount++;
+        }
+        totalSupporters.textContent = supporterCount;
+        rowCount.textContent = voters.length + ' rows';
+        dataCount.textContent = '(' + voters.length + ' records)';
+        
+        if (lastSaved) {
+            var d = new Date(lastSaved);
+            lastUpdated.textContent = d.toLocaleString();
+        }
+
+        if (currentPage > totalPages) currentPage = totalPages;
+        var start = (currentPage - 1) * pageSize;
+        var end = Math.min(start + pageSize, total);
+        var pageData = filtered.slice(start, end);
+
+        searchResult.textContent = searchQuery ? 'Found ' + total + ' results' : 'Showing ' + total + ' voters';
+        pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+        prevPage.disabled = currentPage <= 1;
+        nextPage.disabled = currentPage >= totalPages;
+
+        if (total === 0) {
+            dataTable.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:2rem 0;">' + (searchQuery ? 'No results found' : 'No data loaded') + '</td></tr>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < pageData.length; i++) {
+            var v = pageData[i];
+            var globalIdx = start + i + 1;
+            var statusLabel = v.status ? v.status.replace('_', ' ') : 'not contacted';
+            var statusClass = 'status-' + (v.status || 'not_contacted');
+            var photoHtml = v.photo && v.photo.indexOf('data:image') === 0 
+                ? '<img src="' + v.photo + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;" />' 
+                : '<span style="color:#8a9bb0;">—</span>';
+            html += '<tr>' +
+                '<td>' + globalIdx + '</td>' +
+                '<td>' + photoHtml + '</td>' +
+                '<td><strong>' + v.name + '</strong></td>' +
+                '<td>' + (v.national_id || '—') + '</td>' +
+                '<td>' + v.address + '</td>' +
+                '<td><span class="badge">' + (v.party || '—') + '</span></td>' +
+                '<td>' + (v.phone || '—') + '</td>' +
+                '<td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+                '</tr>';
+        }
+        dataTable.innerHTML = html;
+    }
+
+    csvInput.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            loadCSVData(ev.target.result, file.name);
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+
+    loadFromPath.addEventListener('click', function() {
+        fetch('data.csv')
+            .then(function(response) {
+                if (!response.ok) throw new Error('File not found');
+                return response.text();
+            })
+            .then(function(text) {
+                loadCSVData(text, 'data.csv');
+            })
+            .catch(function(error) {
+                fetch('../Voters/data.csv')
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('File not found');
+                        return response.text();
+                    })
+                    .then(function(text) {
+                        loadCSVData(text, 'data.csv (from Voters)');
+                    })
+                    .catch(function() {
+                        showToast('Could not find data.csv. Please upload manually.');
+                    });
+            });
+    });
+
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#2a7de1';
+        this.style.background = '#f8faff';
+    });
+    uploadZone.addEventListener('dragleave', function(e) {
+        this.style.borderColor = '#dce2ec';
+        this.style.background = 'transparent';
+    });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#dce2ec';
+        this.style.background = 'transparent';
+        var file = e.dataTransfer.files[0];
+        if (file && file.name.indexOf('.csv') > -1) {
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                loadCSVData(ev.target.result, file.name);
+            };
+            reader.readAsText(file);
+        } else {
+            showToast('Please drop a CSV file');
+        }
+    });
+    uploadZone.addEventListener('click', function() {
+        csvInput.click();
+    });
+
+    searchInput.addEventListener('input', function() {
+        searchQuery = this.value;
+        currentPage = 1;
+        render();
+    });
+
+    prevPage.addEventListener('click', function() {
+        if (currentPage > 1) { currentPage--; render(); }
+    });
+    nextPage.addEventListener('click', function() {
+        var totalPages = Math.max(1, Math.ceil(getFilteredData().length / pageSize));
+        if (currentPage < totalPages) { currentPage++; render(); }
+    });
+
+    exportCSV.addEventListener('click', function() {
+        if (voters.length === 0) { showToast('No data to export'); return; }
+        var headers = ['Name', 'National ID', 'Address', 'Phone', 'Party'];
+        var csv = headers.join(',') + '\n';
+        for (var i = 0; i < voters.length; i++) {
+            var v = voters[i];
+            csv += '"' + v.name + '","' + (v.national_id || '') + '","' + v.address + '","' + (v.phone || '') + '","' + (v.party || '') + '"\n';
+        }
+        var blob = new Blob([csv], { type: 'text/csv' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'voters-' + new Date().toISOString().slice(0,10) + '.csv';
+        a.click();
+        showToast('CSV exported');
+    });
+
+    clearAll.addEventListener('click', function() {
+        if (voters.length === 0 && visitLogs.length === 0) { showToast('No data to clear'); return; }
+        if (confirm('Delete ALL voter data and logs? This cannot be undone!')) {
+            voters = [];
+            visitLogs = [];
+            saveToStorage();
+            currentPage = 1;
+            render();
+            uploadStatus.textContent = 'Data cleared';
+            filePathStatus.textContent = '';
+            mappingDisplay.style.display = 'none';
+            showToast('All data cleared');
+        }
+    });
+
+    loadDemo.addEventListener('click', function() {
+        var demo = [];
+        var names = ['Ahmed Waheed', 'Aisha Ibrahim', 'Hassan Shujau', 'Fathimath Nizar', 
+                       'Mohamed Rasheed', 'Mariyam Saleem', 'Abdulla Moosa', 'Zahra Ismail'];
+        var parties = ['MDP', 'PPM', 'DEM', 'JP', 'MDA', 'Independent'];
+        var areas = ['Maafannu', 'Galolhu', 'Henveiru', 'Machchangolhi'];
+        for (var i = 0; i < 50; i++) {
+            demo.push({
+                name: names[i % names.length] + (i > 7 ? ' ' + (Math.floor(i/8)+1) : ''),
+                national_id: String.fromCharCode(65 + i % 26) + String(1000 + i).padStart(3, '0'),
+                address: 'No ' + (1500 + i) + ', ' + areas[i % areas.length],
+                phone: '777' + String(1000 + i).padStart(3, '0'),
+                party: parties[i % parties.length],
+                status: 'not_contacted',
+                supportLevel: 0,
+                revisitPriority: 0,
+                notes: '',
+                photo: ''
+            });
+        }
+        voters = demo;
+        visitLogs = [];
+        saveToStorage();
+        currentPage = 1;
+        mappingDisplay.style.display = 'block';
+        columnMapping.innerHTML = 
+            '<div class="map-item"><span class="csv-col">✅ Name</span> <span style="color:#6b7a8f;">→</span> <span class="app-col">name</span></div>' +
+            '<div class="map-item"><span class="csv-col">✅ National ID</span> <span style="color:#6b7a8f;">→</span> <span class="app-col">national_id</span></div>' +
+            '<div class="map-item"><span class="csv-col">✅ Address</span> <span style="color:#6b7a8f;">→</span> <span class="app-col">address</span></div>' +
+            '<div class="map-item"><span class="csv-col">✅ Phone</span> <span style="color:#6b7a8f;">→</span> <span class="app-col">phone</span></div>' +
+            '<div class="map-item"><span class="csv-col">✅ Party</span> <span style="color:#6b7a8f;">→</span> <span class="app-col">party</span></div>';
+        importStatus.innerHTML = '50 demo voters loaded';
+        importStatus.style.color = '#4caf50';
+        render();
+        uploadStatus.textContent = '50 demo voters loaded';
+        filePathStatus.textContent = 'Demo data';
+        showToast('Loaded 50 demo voters!');
+    });
+
+    var hasData = loadFromStorage();
+    if (voters.length > 0) {
+        render();
+        uploadStatus.textContent = voters.length + ' voters loaded from storage';
+        filePathStatus.textContent = 'Storage loaded';
+        showToast('Loaded ' + voters.length + ' voters from storage');
+    } else {
+        render();
+        uploadStatus.textContent = 'No data loaded. Upload a CSV or load demo.';
+        setTimeout(function() {
+            fetch('data.csv')
+                .then(function(response) {
+                    if (response.ok) return response.text();
+                    throw new Error('Not found');
+                })
+                .then(function(text) {
+                    loadCSVData(text, 'data.csv (auto-loaded)');
+                })
+                .catch(function() {
+                    fetch('../Voters/data.csv')
+                        .then(function(response) {
+                            if (response.ok) return response.text();
+                            throw new Error('Not found');
+                        })
+                        .then(function(text) {
+                            loadCSVData(text, 'data.csv (auto-loaded)');
+                        })
+                        .catch(function() {});
+                });
+        }, 500);
+    }
+
+    console.log('Data Manager loaded');
+    console.log(voters.length + ' voters, ' + visitLogs.length + ' logs');
+})();
+</script>
+</body>
+</html>
