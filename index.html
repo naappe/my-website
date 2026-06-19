@@ -2,562 +2,1098 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Test Campaign App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voter Management Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
-        body { background: #f0f4f9; padding: 1rem; }
-        .app { max-width: 600px; margin: 0 auto; }
-        
+        /* ================================================================
+           RESET & BASE
+           ================================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            padding: 24px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ================================================================
+           HEADER
+           ================================================================ */
         .header {
-            background: white;
-            padding: 1rem 1.5rem;
-            border-radius: 16px;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 0.8rem;
+            gap: 16px;
+            margin-bottom: 28px;
         }
-        .header h1 { font-size: 1.2rem; color: #0b2b4a; display: flex; align-items: center; gap: 0.5rem; }
-        .header h1 i { color: #2a7de1; }
-        
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 i {
+            color: #3b82f6;
+        }
+
+        .header-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .header-badge.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .header-badge.connected i {
+            color: #22c55e;
+        }
+
+        .header-badge.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .header-badge.disconnected i {
+            color: #ef4444;
+        }
+
+        .header-badge.loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .header-badge.loading i {
+            color: #f59e0b;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ================================================================
+           BUTTONS
+           ================================================================ */
         .btn {
-            padding: 0.4rem 1.2rem;
-            border-radius: 30px;
+            padding: 8px 18px;
             border: none;
-            font-size: 0.8rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
-        }
-        .btn-primary { background: #0b2b4a; color: white; }
-        .btn-primary:hover { background: #1a3f62; }
-        .btn-success { background: #4caf50; color: white; }
-        .btn-success:hover { background: #388e3c; }
-        .btn-danger { background: #f44336; color: white; }
-        .btn-danger:hover { background: #c62828; }
-        .btn-warning { background: #ff9800; color: white; }
-        .btn-warning:hover { background: #e68900; }
-        .btn-outline { background: transparent; border: 1px solid #dce2ec; color: #4e6b8a; }
-        .btn-outline:hover { background: #f0f4f9; }
-        
-        .card {
+            gap: 8px;
             background: white;
-            border-radius: 16px;
-            padding: 1.2rem;
-            border: 1px solid #eef2f6;
-            margin-bottom: 1rem;
+            color: #1e293b;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         }
-        .card h3 { font-size: 0.9rem; color: #1c3b5e; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
-        
-        .form-group { margin-bottom: 0.5rem; }
-        .form-group label { font-size: 0.7rem; font-weight: 500; color: #3a5575; display: block; margin-bottom: 0.1rem; }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.4rem 0.7rem;
-            border: 1px solid #dce2ec;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            background: #fafcff;
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .row-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-        
-        .upload-zone {
-            border: 2px dashed #dce2ec;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
         }
-        .upload-zone:hover { border-color: #2a7de1; background: #f8faff; }
-        .upload-zone i { font-size: 2rem; color: #2a7de1; }
-        .upload-zone input { display: none; }
-        
-        .table-wrap { max-height: 300px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        th { text-align: left; padding: 0.3rem 0.4rem; color: #4e6b8a; border-bottom: 1px solid #e9eef5; position: sticky; top: 0; background: white; }
-        td { padding: 0.3rem 0.4rem; border-bottom: 1px solid #f0f4fa; }
-        .status-badge {
-            display: inline-block;
-            padding: 0.1rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.6rem;
-            font-weight: 600;
+
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #e2e8f0;
         }
-        .status-supporter { background: #daf1e4; color: #0c5e3a; }
-        .status-not_home { background: #fff1d6; color: #a85d1a; }
-        .status-refused { background: #ffe8e8; color: #b13e3e; }
-        .status-not_contacted { background: #eef2f6; color: #6b7a8f; }
-        
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #0b2b4a;
-            color: white;
-            padding: 8px 18px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            z-index: 999;
-        }
-        .toast.show { opacity: 1; }
-        .toast.success { background: #2e7d32; }
-        
+        .btn-outline:hover { background: #f1f5f9; }
+
+        /* ================================================================
+           STATS CARDS
+           ================================================================ */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
         }
+
         .stat-card {
             background: white;
-            padding: 0.5rem 0.8rem;
-            border-radius: 12px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             border: 1px solid #eef2f6;
-            text-align: center;
+            transition: 0.2s;
         }
-        .stat-card .label { font-size: 0.5rem; text-transform: uppercase; color: #6b7a8f; }
-        .stat-card .value { font-size: 1.4rem; font-weight: 700; color: #0a1e33; }
-        
-        .status-message {
-            padding: 0.3rem 0.8rem;
+
+        .stat-card:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .stat-card .label {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .stat-card .value i {
+            font-size: 20px;
+            margin-right: 6px;
+        }
+
+        .stat-total .value { color: #0f172a; }
+        .stat-reached .value { color: #22c55e; }
+        .stat-notreached .value { color: #ef4444; }
+        .stat-voter .value { color: #3b82f6; }
+        .stat-undecided .value { color: #f59e0b; }
+
+        /* ================================================================
+           TOOLBAR
+           ================================================================ */
+        .toolbar {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 14px;
+            border: 1px solid #eef2f6;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toolbar-left .btn {
+            font-size: 13px;
+            padding: 6px 14px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f1f5f9;
             border-radius: 8px;
-            font-size: 0.7rem;
-            margin-bottom: 0.5rem;
+            padding: 0 12px;
+            border: 1px solid #e2e8f0;
+            transition: 0.2s;
         }
-        .status-success { background: #daf1e4; color: #0c5e3a; }
-        .status-error { background: #ffe8e8; color: #b13e3e; }
-        .status-info { background: #e3f2fd; color: #0d47a1; }
-        
-        .action-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 0.4rem;
-            margin-top: 0.5rem;
+
+        .search-box:focus-within {
+            border-color: #3b82f6;
+            background: white;
         }
-        .action-grid button {
-            padding: 0.5rem;
+
+        .search-box i {
+            color: #94a3b8;
+        }
+
+        .search-box input {
             border: none;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.15s;
+            background: transparent;
+            padding: 8px 10px;
+            font-size: 14px;
+            width: 220px;
+            outline: none;
         }
-        .action-grid button:active { transform: scale(0.95); }
-        .act-home { background: #e3f2fd; color: #0d47a1; }
-        .act-not_home { background: #fff3e0; color: #e65100; }
-        .act-supporter { background: #daf1e4; color: #0c5e3a; }
-        .act-refused { background: #ffebee; color: #b13e3e; }
+
+        .filter-select {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 14px;
+            color: #1e293b;
+            cursor: pointer;
+        }
+
+        /* ================================================================
+           TABLE
+           ================================================================ */
+        .table-container {
+            background: white;
+            border-radius: 14px;
+            border: 1px solid #eef2f6;
+            overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 800px;
+        }
+
+        thead {
+            background: #f8fafc;
+            border-bottom: 2px solid #eef2f6;
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: #fafcff;
+        }
+
+        tr {
+            cursor: default;
+        }
+
+        .voter-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e2e8f0;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .voter-photo:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            position: relative;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .status-reached { background: #dcfce7; color: #166534; }
+        .status-notreached { background: #fee2e2; color: #991b1b; }
+        .status-undecided { background: #fef3c7; color: #92400e; }
+        .status-voter { background: #dbeafe; color: #1e40af; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .empty-state .hint {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        /* ================================================================
+           LOADING OVERLAY
+           ================================================================ */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .spinner {
+            width: 56px;
+            height: 56px;
+            border: 5px solid rgba(255,255,255,0.2);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .loading-progress {
+            width: 240px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: white;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        /* ================================================================
+           TOAST NOTIFICATIONS
+           ================================================================ */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 420px;
+            animation: slideUp 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-success { background: #22c55e; color: white; }
+        .toast-error { background: #ef4444; color: white; }
+        .toast-info { background: #3b82f6; color: white; }
+        .toast-warning { background: #f59e0b; color: white; }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: 8px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .header h1 { font-size: 22px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search-box input { width: 100%; }
+            .toast-container {
+                bottom: 16px;
+                right: 16px;
+                left: 16px;
+                max-width: none;
+                font-size: 14px;
+                padding: 14px 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 18px; }
+            .header-actions .btn { font-size: 12px; padding: 6px 12px; }
+            .stat-card .value { font-size: 24px; }
+        }
+
+        /* ================================================================
+           DOUBLE-CLICK HINT
+           ================================================================ */
+        .hint-bar {
+            background: #f8fafc;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+            border: 1px dashed #e2e8f0;
+        }
+
+        .hint-bar i {
+            color: #3b82f6;
+        }
     </style>
 </head>
 <body>
-<div class="app" id="app">
-    <div class="header">
-        <h1><i class="fas fa-vote-yea"></i> Campaign Test</h1>
-        <div>
-            <span id="statusDot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff9800;margin-right:0.3rem;"></span>
-            <span id="statusText" style="font-size:0.7rem;color:#6b7a8f;">Checking...</span>
+
+    <!-- ============================================================
+    LOADING OVERLAY
+    ============================================================ -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Loading...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingProgressBar"></div>
         </div>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-grid" id="statsGrid">
-        <div class="stat-card"><div class="label">Voters</div><div class="value" id="statTotal">0</div></div>
-        <div class="stat-card"><div class="label">Knocked</div><div class="value" id="statKnocked">0</div></div>
-        <div class="stat-card"><div class="label">Supporters</div><div class="value" id="statSupporters">0</div></div>
-        <div class="stat-card"><div class="label">Not Home</div><div class="value" id="statNotHome">0</div></div>
-    </div>
+    <!-- ============================================================
+    DASHBOARD
+    ============================================================ -->
+    <div class="dashboard">
 
-    <!-- Upload -->
-    <div class="card">
-        <h3><i class="fas fa-upload"></i> Step 1: Upload CSV</h3>
-        <div class="upload-zone" id="uploadZone">
-            <i class="fas fa-file-csv"></i>
-            <p style="font-size:0.8rem;color:#6b7a8f;margin-top:0.3rem;">Click to upload CSV</p>
-            <p style="font-size:0.6rem;color:#8a9bb0;">Headers: Name, National ID, Address, Phone, Party</p>
-            <input type="file" id="csvUpload" accept=".csv" />
+        <!-- HEADER -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-vote-yea"></i>
+                Voter Management
+                <span class="header-badge loading" id="connectionStatus">
+                    <i class="fas fa-spinner fa-spin"></i> Connecting...
+                </span>
+            </h1>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="refreshData()" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
         </div>
-        <div id="uploadStatus" style="margin-top:0.5rem;font-size:0.7rem;color:#6b7a8f;"></div>
-    </div>
 
-    <!-- Voter List -->
-    <div class="card">
-        <h3><i class="fas fa-users"></i> Voters (<span id="voterCount">0</span>)</h3>
-        <div class="table-wrap">
+        <!-- STATS CARDS -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card stat-total">
+                <div class="label"><i class="fas fa-users"></i> Total</div>
+                <div class="value" id="totalCount">0</div>
+            </div>
+            <div class="stat-card stat-reached">
+                <div class="label"><i class="fas fa-check-circle"></i> Reached</div>
+                <div class="value" id="reachedCount">0</div>
+            </div>
+            <div class="stat-card stat-notreached">
+                <div class="label"><i class="fas fa-times-circle"></i> Not Reached</div>
+                <div class="value" id="notReachedCount">0</div>
+            </div>
+            <div class="stat-card stat-voter">
+                <div class="label"><i class="fas fa-user-check"></i> Voter</div>
+                <div class="value" id="voterCount">0</div>
+            </div>
+            <div class="stat-card stat-undecided">
+                <div class="label"><i class="fas fa-minus-circle"></i> Not Decide</div>
+                <div class="value" id="undecidedCount">0</div>
+            </div>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <span style="font-size:14px;color:#64748b;">
+                    <i class="fas fa-info-circle"></i> 
+                    <span id="voterCountLabel">0</span> voters in database
+                </span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search by name, ID, or phone..." id="searchInput" />
+                </div>
+                <select class="filter-select" id="statusFilter">
+                    <option value="all">All Status</option>
+                    <option value="reached">Reached</option>
+                    <option value="notreached">Not Reached</option>
+                    <option value="voter">Voter</option>
+                    <option value="undecided">Not Decide</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-container" id="tableContainer">
             <table>
-                <thead><tr><th>#</th><th>Name</th><th>Address</th><th>Party</th><th>Status</th></tr></thead>
-                <tbody id="voterTable">
-                    <tr><td colspan="5" style="text-align:center;color:#8a9bb0;padding:1rem 0;">No voters loaded</td></tr>
+                <thead>
+                    <tr>
+                        <th>Photo</th>
+                        <th>Name</th>
+                        <th>National ID</th>
+                        <th>Const.</th>
+                        <th>District</th>
+                        <th>House</th>
+                        <th>Lives In</th>
+                        <th>Mobile</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="voterTableBody">
+                    <!-- Rows injected by JavaScript -->
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <!-- Door-to-Door -->
-    <div class="card">
-        <h3><i class="fas fa-door-open"></i> Step 2: Door-to-Door</h3>
-        <div id="doorStep">
-            <p style="font-size:0.7rem;color:#6b7a8f;margin-bottom:0.5rem;">Click a voter above to log a door knock</p>
-            <div id="selectedVoter" style="background:#f8fafd;padding:0.5rem;border-radius:10px;margin-bottom:0.5rem;text-align:center;font-size:0.8rem;color:#6b7a8f;">
-                No voter selected
-            </div>
-            <div class="action-grid">
-                <button class="act-home" data-outcome="home">Home</button>
-                <button class="act-not_home" data-outcome="not_home">Not Home</button>
-                <button class="act-supporter" data-outcome="supporter">Supporter</button>
-                <button class="act-refused" data-outcome="refused">Refused</button>
-            </div>
-            <div id="actionStatus" style="margin-top:0.5rem;font-size:0.7rem;color:#6b7a8f;"></div>
+        <!-- HINT BAR -->
+        <div class="hint-bar">
+            <i class="fas fa-mouse-pointer"></i>
+            <span><strong>Double-click</strong> any row to cycle through statuses: Reached → Not Reached → Voter → Not Decide</span>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="margin-top: 16px; text-align: center; color: #94a3b8; font-size: 13px;">
+            <i class="fas fa-database"></i> 
+            <span id="lastUpdated">Last updated: just now</span>
         </div>
     </div>
-</div>
 
-<div class="toast" id="toast"></div>
-
-<script>
-(function() {
-    // ===== STATE =====
-    var voters = [];
-    var selectedVoterId = null;
-    var apiUrl = 'api.php';
-
-    // ===== DOM REFS =====
-    var csvInput = document.getElementById('csvUpload');
-    var uploadZone = document.getElementById('uploadZone');
-    var uploadStatus = document.getElementById('uploadStatus');
-    var voterTable = document.getElementById('voterTable');
-    var voterCount = document.getElementById('voterCount');
-    var selectedVoterDiv = document.getElementById('selectedVoter');
-    var actionStatus = document.getElementById('actionStatus');
-    var statTotal = document.getElementById('statTotal');
-    var statKnocked = document.getElementById('statKnocked');
-    var statSupporters = document.getElementById('statSupporters');
-    var statNotHome = document.getElementById('statNotHome');
-    var statusDot = document.getElementById('statusDot');
-    var statusText = document.getElementById('statusText');
-    var toast = document.getElementById('toast');
-
-    // ===== TOAST =====
-    function showToast(msg, type) {
-        toast.textContent = msg;
-        toast.className = 'toast';
-        if (type === 'success') toast.classList.add('success');
-        toast.classList.add('show');
-        clearTimeout(toast._timer);
-        toast._timer = setTimeout(function() {
-            toast.classList.remove('show');
-        }, 2500);
-    }
-
-    // ===== CHECK API =====
-    function checkAPI() {
-        fetch(apiUrl + '?action=stats')
-            .then(function(response) {
-                if (!response.ok) throw new Error('API not responding');
-                return response.json();
-            })
-            .then(function(data) {
-                statusDot.style.background = '#4caf50';
-                statusText.textContent = 'API Connected';
-                if (data.success) {
-                    loadVoters();
-                }
-            })
-            .catch(function(error) {
-                statusDot.style.background = '#f44336';
-                statusText.textContent = 'API Offline (check XAMPP)';
-                console.error('API Error:', error);
-            });
-    }
-
-    // ===== LOAD VOTERS =====
-    function loadVoters() {
-        fetch(apiUrl + '?action=get_voters')
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    voters = data.voters;
-                    renderVoters();
-                    updateStats();
-                }
-            })
-            .catch(function(error) {
-                console.error('Error loading voters:', error);
-            });
-    }
-
-    // ===== RENDER VOTERS =====
-    function renderVoters() {
-        if (voters.length === 0) {
-            voterTable.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8a9bb0;padding:1rem 0;">No voters loaded. Upload CSV.</td></tr>';
-            voterCount.textContent = '0';
-            return;
-        }
-
-        var html = '';
-        for (var i = 0; i < voters.length; i++) {
-            var v = voters[i];
-            var status = v.status || 'not_contacted';
-            var statusLabel = status.replace('_', ' ');
-            var statusClass = 'status-' + status;
-            html += '<tr style="cursor:pointer;" data-id="' + v.id + '">' +
-                '<td>' + (i + 1) + '</td>' +
-                '<td><strong>' + v.name + '</strong></td>' +
-                '<td>' + (v.address || '—') + '</td>' +
-                '<td>' + (v.party || '—') + '</td>' +
-                '<td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
-                '</tr>';
-        }
-        voterTable.innerHTML = html;
-        voterCount.textContent = voters.length;
-
-        // Click handler for voters
-        var rows = voterTable.querySelectorAll('tr[data-id]');
-        for (var i = 0; i < rows.length; i++) {
-            rows[i].addEventListener('click', function() {
-                var id = parseInt(this.getAttribute('data-id'));
-                selectVoter(id);
-            });
-        }
-    }
-
-    // ===== SELECT VOTER =====
-    function selectVoter(id) {
-        selectedVoterId = id;
-        var voter = null;
-        for (var i = 0; i < voters.length; i++) {
-            if (voters[i].id === id) {
-                voter = voters[i];
-                break;
-            }
-        }
-        
-        if (voter) {
-            selectedVoterDiv.innerHTML = '<strong>' + voter.name + '</strong> | ' + (voter.address || 'No address') + ' | Party: ' + (voter.party || '—');
-            selectedVoterDiv.style.color = '#0b2b4a';
-            actionStatus.textContent = 'Ready to log door for ' + voter.name;
-            showToast('Selected: ' + voter.name);
-        }
-    }
-
-    // ===== DOOR ACTION =====
-    function doorAction(outcome) {
-        if (!selectedVoterId) {
-            showToast('Please select a voter first', 'warning');
-            return;
-        }
-
-        var logData = {
-            voter_id: selectedVoterId,
-            canvasser: 'Me',
-            outcome: outcome,
-            notes: '',
-            support_level: outcome === 'supporter' ? 4 : 0,
-            revisit_priority: outcome === 'not_home' ? 4 : 0
+    <!-- ============================================================
+    JAVASCRIPT — Supabase Integration
+    ============================================================ -->
+    <script>
+        // ================================================================
+        //  ✅ YOUR SUPABASE CREDENTIALS
+        // ================================================================
+        const SUPABASE_CONFIG = {
+            url: 'https://tmuptbwwmwlrmewhoodn.supabase.co',
+            anonKey: 'sb_publishable_LAn11iS2zqMq1B33IQJxIW_NbgWKi1',
+            table: 'voters'
         };
 
-        fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(logData)
-        })
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showToast('✅ Logged: ' + outcome, 'success');
-                loadVoters();
-                updateStats();
-                selectedVoterDiv.innerHTML = 'No voter selected';
-                selectedVoterDiv.style.color = '#6b7a8f';
-                selectedVoterId = null;
-                actionStatus.textContent = '';
-            } else {
-                showToast('❌ Error: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(function(error) {
-            showToast('❌ Connection error: ' + error.message);
-        });
-    }
+        // ================================================================
+        //  STATE
+        // ================================================================
+        let state = {
+            voters: [],
+            filteredVoters: [],
+            isLoading: false,
+            stats: { total: 0, reached: 0, notreached: 0, voter: 0, undecided: 0 },
+            lastUpdated: new Date(),
+            isSupabaseConnected: false
+        };
 
-    // ===== UPDATE STATS =====
-    function updateStats() {
-        fetch(apiUrl + '?action=stats')
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    statTotal.textContent = data.stats.total_voters || 0;
-                    statKnocked.textContent = data.stats.knocked || 0;
-                    statSupporters.textContent = data.stats.supporters || 0;
-                    statNotHome.textContent = data.stats.not_home || 0;
-                }
-            })
-            .catch(function(error) {
-                console.error('Error fetching stats:', error);
+        // ================================================================
+        //  DOM REFS
+        // ================================================================
+        const DOM = {
+            tableBody: document.getElementById('voterTableBody'),
+            searchInput: document.getElementById('searchInput'),
+            statusFilter: document.getElementById('statusFilter'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            loadingText: document.getElementById('loadingText'),
+            loadingProgress: document.getElementById('loadingProgressBar'),
+            tableContainer: document.getElementById('tableContainer'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            connectionStatus: document.getElementById('connectionStatus'),
+            voterCountLabel: document.getElementById('voterCountLabel'),
+            stats: {
+                total: document.getElementById('totalCount'),
+                reached: document.getElementById('reachedCount'),
+                notreached: document.getElementById('notReachedCount'),
+                voter: document.getElementById('voterCount'),
+                undecided: document.getElementById('undecidedCount')
+            },
+            footer: {
+                updated: document.getElementById('lastUpdated')
+            }
+        };
+
+        // ================================================================
+        //  UTILITY FUNCTIONS
+        // ================================================================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function formatStatus(status) {
+            if (!status) return 'Unknown';
+            const map = {
+                'reached': 'Reached',
+                'notreached': 'Not Reached',
+                'voter': 'Voter',
+                'undecided': 'Not Decide'
+            };
+            return map[status] || status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        function formatDate(date) {
+            if (!date) return 'never';
+            return new Date(date).toLocaleString();
+        }
+
+        function getSupabaseHeaders() {
+            return {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': 'Bearer ' + SUPABASE_CONFIG.anonKey,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        function updateConnectionStatus(status, message) {
+            const el = DOM.connectionStatus;
+            el.className = 'header-badge ' + status;
+            el.innerHTML = message;
+        }
+
+        // ================================================================
+        //  TOAST NOTIFICATIONS
+        // ================================================================
+        function showToast(message, type = 'info') {
+            const existing = document.querySelector('.toast-container');
+            if (existing) existing.remove();
+
+            const container = document.createElement('div');
+            container.className = `toast-container toast-${type}`;
+            container.innerHTML = `
+                <span>${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            document.body.appendChild(container);
+
+            setTimeout(() => {
+                if (container.parentElement) container.remove();
+            }, 4000);
+        }
+
+        // ================================================================
+        //  LOADING OVERLAY
+        // ================================================================
+        function showLoading(message = 'Loading...') {
+            DOM.loadingText.textContent = message;
+            DOM.loadingProgress.style.display = 'none';
+            DOM.loadingProgress.style.width = '0%';
+            DOM.loadingOverlay.classList.add('active');
+            state.isLoading = true;
+        }
+
+        function hideLoading() {
+            DOM.loadingOverlay.classList.remove('active');
+            state.isLoading = false;
+        }
+
+        // ================================================================
+        //  SUPABASE API CALLS
+        // ================================================================
+        async function supabaseFetch(table, options = {}) {
+            const url = `${SUPABASE_CONFIG.url}/rest/v1/${table}`;
+            const params = new URLSearchParams();
+
+            if (options.select) params.append('select', options.select);
+            if (options.order) params.append('order', options.order);
+
+            const finalUrl = params.toString() ? `${url}?${params}` : url;
+
+            const response = await fetch(finalUrl, {
+                headers: getSupabaseHeaders()
             });
-    }
 
-    // ===== CSV UPLOAD =====
-    function parseCSV(text) {
-        var lines = text.split(/\r?\n/).filter(function(line) { return line.trim() !== ''; });
-        if (lines.length < 2) { showToast('CSV needs header + data'); return []; }
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Supabase error ${response.status}: ${error}`);
+            }
 
-        var headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
-        
-        var nameIdx = -1, idIdx = -1, addrIdx = -1, phoneIdx = -1, partyIdx = -1;
-        for (var i = 0; i < headers.length; i++) {
-            var h = headers[i];
-            if (h.indexOf('name') > -1) nameIdx = i;
-            else if (h.indexOf('national') > -1 || h.indexOf('id') > -1) idIdx = i;
-            else if (h.indexOf('address') > -1 || h.indexOf('house') > -1) addrIdx = i;
-            else if (h.indexOf('phone') > -1) phoneIdx = i;
-            else if (h.indexOf('party') > -1) partyIdx = i;
+            return response.json();
         }
 
-        if (nameIdx < 0) { showToast('Name column not found'); return []; }
+        async function supabaseUpdate(table, id, data) {
+            const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${table}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: getSupabaseHeaders(),
+                body: JSON.stringify(data)
+            });
 
-        var result = [];
-        for (var i = 1; i < lines.length; i++) {
-            var cols = lines[i].split(',').map(function(c) { return c.trim(); });
-            if (cols.length === 0 || cols.every(function(c) { return c === ''; })) continue;
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Update failed: ${error}`);
+            }
+            return response;
+        }
 
-            var name = (nameIdx >= 0 && nameIdx < cols.length) ? cols[nameIdx] : '';
-            var national_id = (idIdx >= 0 && idIdx < cols.length) ? cols[idIdx] : '';
-            var address = (addrIdx >= 0 && addrIdx < cols.length) ? cols[addrIdx] : '';
-            var phone = (phoneIdx >= 0 && phoneIdx < cols.length) ? cols[phoneIdx] : '';
-            var party = (partyIdx >= 0 && partyIdx < cols.length) ? cols[partyIdx] : '';
+        // ================================================================
+        //  FETCH VOTERS FROM SUPABASE
+        // ================================================================
+        async function fetchVoters() {
+            try {
+                showLoading('Loading voters from Supabase...');
+                updateConnectionStatus('loading', '<i class="fas fa-spinner fa-spin"></i> Loading...');
 
-            if (name) {
-                result.push({
-                    name: name,
-                    national_id: national_id || '',
-                    address: address || '',
-                    phone: phone || '',
-                    party: party || '',
-                    status: 'not_contacted'
+                const data = await supabaseFetch(SUPABASE_CONFIG.table, {
+                    select: '*',
+                    order: 'created_at.desc'
                 });
+
+                state.voters = data || [];
+                state.filteredVoters = [...state.voters];
+                state.lastUpdated = new Date();
+                state.isSupabaseConnected = true;
+
+                updateConnectionStatus('connected', '<i class="fas fa-link"></i> Connected');
+
+                updateStats();
+                renderTable();
+                updateFooter();
+                hideLoading();
+
+                if (state.voters.length === 0) {
+                    showToast('ℹ️ No voters found in the database.', 'info');
+                }
+
+                return state.voters;
+            } catch (error) {
+                console.error('Supabase fetch error:', error);
+                state.isSupabaseConnected = false;
+                updateConnectionStatus('disconnected', '<i class="fas fa-exclamation-triangle"></i> Disconnected');
+
+                hideLoading();
+                showToast('❌ Failed to connect to Supabase: ' + error.message, 'error');
+
+                // Load mock data as fallback
+                if (state.voters.length === 0) {
+                    loadMockData();
+                }
+                return [];
             }
         }
-        return result;
-    }
 
-    csvInput.addEventListener('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
+        // ================================================================
+        //  MOCK DATA (fallback when Supabase is unavailable)
+        // ================================================================
+        function loadMockData() {
+            state.voters = [
+                { id: 1, photo: 'https://i.pravatar.cc/60?img=1', name: 'Ahmed Hassan', national_id: '12345678901234', const: 'C-01', district: 'Cairo', house: '12A', lives_in: 'Nasr City', phone: '01001234567', status: 'reached' },
+                { id: 2, photo: 'https://i.pravatar.cc/60?img=2', name: 'Mona Ibrahim', national_id: '22345678901234', const: 'C-02', district: 'Alexandria', house: '8B', lives_in: 'Sidi Gaber', phone: '01109876543', status: 'voter' },
+                { id: 3, photo: 'https://i.pravatar.cc/60?img=3', name: 'Khaled Youssef', national_id: '32345678901234', const: 'C-03', district: 'Giza', house: '5', lives_in: 'Dokki', phone: '01234567890', status: 'notreached' },
+                { id: 4, photo: 'https://i.pravatar.cc/60?img=4', name: 'Sara Mahmoud', national_id: '42345678901234', const: 'C-04', district: 'Luxor', house: '7C', lives_in: 'East Bank', phone: '01567890123', status: 'undecided' },
+                { id: 5, photo: 'https://i.pravatar.cc/60?img=5', name: 'Omar Ali', national_id: '52345678901234', const: 'C-05', district: 'Aswan', house: '2', lives_in: 'Nile Corniche', phone: '01678901234', status: 'reached' }
+            ];
+            state.filteredVoters = [...state.voters];
+            state.lastUpdated = new Date();
+            state.isSupabaseConnected = false;
 
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-            var parsed = parseCSV(ev.target.result);
-            if (parsed.length === 0) {
-                uploadStatus.innerHTML = '<span style="color:#f44336;">No voters found</span>';
+            updateConnectionStatus('disconnected', '<i class="fas fa-database"></i> Mock Data');
+
+            updateStats();
+            renderTable();
+            updateFooter();
+            showToast('📊 Using mock data (Supabase unavailable)', 'warning');
+        }
+
+        // ================================================================
+        //  RENDER TABLE
+        // ================================================================
+        function renderTable(data = state.filteredVoters) {
+            const tbody = DOM.tableBody;
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="9">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h3>No voters found</h3>
+                            <p class="hint">Import data into your Supabase table to get started.</p>
+                        </div>
+                    </td></tr>
+                `;
                 return;
             }
 
-            // Send to PHP
-            uploadStatus.innerHTML = '<span style="color:#ff9800;">Uploading ' + parsed.length + ' voters...</span>';
+            const defaultPhoto = 'https://ui-avatars.com/api/?background=e2e8f0&color=475569&name=';
 
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ voters: parsed })
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    uploadStatus.innerHTML = '<span style="color:#4caf50;">✅ ' + data.inserted + ' voters imported successfully!</span>';
-                    showToast('✅ ' + data.inserted + ' voters imported!', 'success');
-                    loadVoters();
-                    updateStats();
-                } else {
-                    uploadStatus.innerHTML = '<span style="color:#f44336;">❌ Error: ' + JSON.stringify(data.errors) + '</span>';
-                }
-            })
-            .catch(function(error) {
-                uploadStatus.innerHTML = '<span style="color:#f44336;">❌ Connection error: ' + error.message + '</span>';
-                showToast('❌ Connection error. Is XAMPP running?');
-            });
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    });
-
-    uploadZone.addEventListener('click', function() {
-        csvInput.click();
-    });
-
-    // ===== ACTION BUTTONS =====
-    document.querySelectorAll('.action-grid button').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var outcome = this.getAttribute('data-outcome');
-            doorAction(outcome);
-        });
-    });
-
-    // ===== DRAG & DROP =====
-    uploadZone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.style.borderColor = '#2a7de1';
-        this.style.background = '#f8faff';
-    });
-    uploadZone.addEventListener('dragleave', function(e) {
-        this.style.borderColor = '#dce2ec';
-        this.style.background = 'transparent';
-    });
-    uploadZone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.style.borderColor = '#dce2ec';
-        this.style.background = 'transparent';
-        var file = e.dataTransfer.files[0];
-        if (file && file.name.indexOf('.csv') > -1) {
-            var reader = new FileReader();
-            reader.onload = function(ev) {
-                var parsed = parseCSV(ev.target.result);
-                if (parsed.length === 0) {
-                    uploadStatus.innerHTML = '<span style="color:#f44336;">No voters found</span>';
-                    return;
-                }
-                uploadStatus.innerHTML = '<span style="color:#ff9800;">Uploading ' + parsed.length + ' voters...</span>';
-                fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ voters: parsed })
-                })
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        uploadStatus.innerHTML = '<span style="color:#4caf50;">✅ ' + data.inserted + ' voters imported!</span>';
-                        showToast('✅ ' + data.inserted + ' voters imported!', 'success');
-                        loadVoters();
-                        updateStats();
-                    }
-                })
-                .catch(function(error) {
-                    uploadStatus.innerHTML = '<span style="color:#f44336;">❌ Connection error</span>';
-                });
-            };
-            reader.readAsText(file);
-        } else {
-            showToast('Please drop a CSV file');
+            tbody.innerHTML = data.map(v => {
+                const photoUrl = v.photo || defaultPhoto + encodeURIComponent(v.name || 'Voter');
+                return `
+                    <tr data-id="${v.id || v.national_id || Math.random()}">
+                        <td>
+                            <img src="${photoUrl}" 
+                                 class="voter-photo" 
+                                 alt="${escapeHtml(v.name || 'Voter')}" 
+                                 loading="lazy"
+                                 onerror="this.src='${defaultPhoto + encodeURIComponent(v.name || 'Unknown')}'" />
+                        </td>
+                        <td><strong>${escapeHtml(v.name || '')}</strong></td>
+                        <td>${escapeHtml(v.national_id || '')}</td>
+                        <td>${escapeHtml(v.const || '')}</td>
+                        <td>${escapeHtml(v.district || '')}</td>
+                        <td>${escapeHtml(v.house || '')}</td>
+                        <td>${escapeHtml(v.lives_in || '')}</td>
+                        <td>${escapeHtml(v.phone || '')}</td>
+                        <td><span class="status-badge status-${v.status || 'undecided'}">${escapeHtml(formatStatus(v.status))}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
-    });
 
-    // ===== INIT =====
-    checkAPI();
-    setInterval(updateStats, 10000);
-    console.log('Campaign Test App loaded');
-    console.log('API URL: ' + apiUrl);
-})();
-</script>
+        // ================================================================
+        //  STATS
+        // ================================================================
+        function updateStats() {
+            const voters = state.voters;
+            state.stats = {
+                total: voters.length,
+                reached: voters.filter(v => v.status === 'reached').length,
+                notreached: voters.filter(v => v.status === 'notreached').length,
+                voter: voters.filter(v => v.status === 'voter').length,
+                undecided: voters.filter(v => v.status === 'undecided').length
+            };
+            updateStatsUI();
+        }
+
+        function updateStatsUI() {
+            const s = state.stats;
+            DOM.stats.total.textContent = s.total || 0;
+            DOM.stats.reached.textContent = s.reached || 0;
+            DOM.stats.notreached.textContent = s.notreached || 0;
+            DOM.stats.voter.textContent = s.voter || 0;
+            DOM.stats.undecided.textContent = s.undecided || 0;
+            DOM.voterCountLabel.textContent = s.total || 0;
+        }
+
+        function updateFooter() {
+            DOM.footer.updated.textContent = 'Last updated: ' + formatDate(state.lastUpdated);
+        }
+
+        // ================================================================
+        //  FILTER & SEARCH
+        // ================================================================
+        let searchDebounceTimer;
+
+        function filterTable() {
+            const search = DOM.searchInput.value.toLowerCase().trim();
+            const status = DOM.statusFilter.value;
+
+            state.filteredVoters = state.voters.filter(v => {
+                const matchSearch =
+                    (v.name || '').toLowerCase().includes(search) ||
+                    (v.national_id || '').includes(search) ||
+                    (v.phone || '').includes(search) ||
+                    (v.district || '').toLowerCase().includes(search) ||
+                    (v.lives_in || '').toLowerCase().includes(search);
+
+                const matchStatus = status === 'all' || (v.status || 'undecided') === status;
+
+                return matchSearch && matchStatus;
+            });
+
+            renderTable(state.filteredVoters);
+        }
+
+        // ================================================================
+        //  DOUBLE-CLICK STATUS TOGGLE (UPDATES SUPABASE)
+        // ================================================================
+        function setupRowDoubleClick() {
+            document.addEventListener('dblclick', async function(e) {
+                const row = e.target.closest('tr');
+                if (!row) return;
+
+                const id = row.dataset.id;
+                const voter = state.voters.find(v => String(v.id || v.national_id) === String(id));
+                if (!voter) return;
+
+                const statuses = ['reached', 'notreached', 'voter', 'undecided'];
+                const currentIndex = statuses.indexOf(voter.status);
+                const nextIndex = (currentIndex + 1) % statuses.length;
+                const newStatus = statuses[nextIndex];
+
+                // Update in Supabase
+                if (state.isSupabaseConnected && voter.id) {
+                    try {
+                        await supabaseUpdate(SUPABASE_CONFIG.table, voter.id, { status: newStatus });
+                        showToast(`✅ ${voter.name} → ${formatStatus(newStatus)}`, 'success');
+                    } catch (error) {
+                        showToast('❌ Failed to update status: ' + error.message, 'error');
+                        return;
+                    }
+                } else {
+                    // If not connected, just update local state
+                    showToast(`🔄 ${voter.name} → ${formatStatus(newStatus)} (local only)`, 'warning');
+                }
+
+                voter.status = newStatus;
+                state.lastUpdated = new Date();
+
+                filterTable();
+                updateStats();
+                updateFooter();
+            });
+        }
+
+        // ================================================================
+        //  REFRESH DATA
+        // ================================================================
+        async function refreshData() {
+            if (state.isLoading) return;
+
+            DOM.refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            DOM.refreshBtn.disabled = true;
+
+            try {
+                await fetchVoters();
+                showToast('🔄 Data refreshed from Supabase.', 'success');
+            } catch (error) {
+                showToast('❌ Refresh failed: ' + error.message, 'error');
+            } finally {
+                DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                DOM.refreshBtn.disabled = false;
+            }
+        }
+
+        // ================================================================
+        //  KEYBOARD SHORTCUTS
+        // ================================================================
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                    e.preventDefault();
+                    DOM.searchInput.focus();
+                    DOM.searchInput.select();
+                }
+                if (e.key === 'Escape' && document.activeElement === DOM.searchInput) {
+                    DOM.searchInput.value = '';
+                    filterTable();
+                    DOM.searchInput.blur();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                    e.preventDefault();
+                    refreshData();
+                }
+            });
+        }
+
+        // ================================================================
+        //  AUTO-REFRESH (every 5 minutes)
+        // ================================================================
+        let autoRefreshInterval = null;
+
+        function startAutoRefresh(intervalMs = 300000) {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {
+                if (!state.isLoading) {
+                    refreshData();
+                }
+            }, intervalMs);
+        }
+
+        // ================================================================
+        //  INITIALIZATION
+        // ================================================================
+        async function init() {
+            console.log('🗳️ Voter Management Dashboard');
+            console.log('🔗 Supabase URL:', SUPABASE_CONFIG.url);
+
+            // Setup event listeners
+            DOM.searchInput.addEventListener('input', function() {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(filterTable, 300);
+            });
+
+            DOM.statusFilter.addEventListener('change', filterTable);
+
+            setupRowDoubleClick();
+            setupKeyboardShortcuts();
+
+            // Fetch from Supabase
+            try {
+                await fetchVoters();
+                console.log(`✅ Loaded ${state.voters.length} voters from Supabase`);
+            } catch (error) {
+                console.warn('⚠️ Using mock data fallback');
+                loadMockData();
+            }
+
+            startAutoRefresh();
+
+            // Expose functions globally
+            window.refreshData = refreshData;
+            window.filterTable = filterTable;
+            window.showToast = showToast;
+
+            console.log('✅ Dashboard ready!');
+            console.log('💡 Keyboard shortcuts: Ctrl+F (search), Esc (clear), Ctrl+R (refresh)');
+            console.log('💡 Double-click any row to change status');
+        }
+
+        // ================================================================
+        //  START THE APP
+        // ================================================================
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
 </body>
 </html>
