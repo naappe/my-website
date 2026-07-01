@@ -1,1099 +1,523 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Voter Management Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <style>
-        /* ================================================================
-           RESET & BASE
-           ================================================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f4f7fc;
-            color: #1e293b;
-            padding: 24px;
-        }
-
-        .dashboard {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* ================================================================
-           HEADER
-           ================================================================ */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #0f172a;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header h1 i {
-            color: #3b82f6;
-        }
-
-        .header-badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .header-badge.connected {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .header-badge.connected i {
-            color: #22c55e;
-        }
-
-        .header-badge.disconnected {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .header-badge.disconnected i {
-            color: #ef4444;
-        }
-
-        .header-badge.loading {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .header-badge.loading i {
-            color: #f59e0b;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* ================================================================
-           BUTTONS
-           ================================================================ */
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: white;
-            color: #1e293b;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1.5px solid #e2e8f0;
-        }
-        .btn-outline:hover { background: #f1f5f9; }
-
-        /* ================================================================
-           STATS CARDS
-           ================================================================ */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 18px 20px;
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #eef2f6;
-            transition: 0.2s;
-        }
-
-        .stat-card:hover {
-            border-color: #cbd5e1;
-            transform: translateY(-2px);
-        }
-
-        .stat-card .label {
-            font-size: 13px;
-            color: #64748b;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-card .value {
-            font-size: 32px;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        .stat-card .value i {
-            font-size: 20px;
-            margin-right: 6px;
-        }
-
-        .stat-total .value { color: #0f172a; }
-        .stat-reached .value { color: #22c55e; }
-        .stat-notreached .value { color: #ef4444; }
-        .stat-voter .value { color: #3b82f6; }
-        .stat-undecided .value { color: #f59e0b; }
-
-        /* ================================================================
-           TOOLBAR
-           ================================================================ */
-        .toolbar {
-            background: white;
-            padding: 16px 20px;
-            border-radius: 14px;
-            border: 1px solid #eef2f6;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            margin-bottom: 24px;
-        }
-
-        .toolbar-left {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toolbar-left .btn {
-            font-size: 13px;
-            padding: 6px 14px;
-        }
-
-        .search-box {
-            display: flex;
-            align-items: center;
-            background: #f1f5f9;
-            border-radius: 8px;
-            padding: 0 12px;
-            border: 1px solid #e2e8f0;
-            transition: 0.2s;
-        }
-
-        .search-box:focus-within {
-            border-color: #3b82f6;
-            background: white;
-        }
-
-        .search-box i {
-            color: #94a3b8;
-        }
-
-        .search-box input {
-            border: none;
-            background: transparent;
-            padding: 8px 10px;
-            font-size: 14px;
-            width: 220px;
-            outline: none;
-        }
-
-        .filter-select {
-            padding: 8px 14px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            font-size: 14px;
-            color: #1e293b;
-            cursor: pointer;
-        }
-
-        /* ================================================================
-           TABLE
-           ================================================================ */
-        .table-container {
-            background: white;
-            border-radius: 14px;
-            border: 1px solid #eef2f6;
-            overflow-x: auto;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            min-width: 800px;
-        }
-
-        thead {
-            background: #f8fafc;
-            border-bottom: 2px solid #eef2f6;
-        }
-
-        th {
-            text-align: left;
-            padding: 14px 16px;
-            font-weight: 600;
-            color: #475569;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
-
-        tr:hover td {
-            background: #fafcff;
-        }
-
-        tr {
-            cursor: default;
-        }
-
-        .voter-photo {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #e2e8f0;
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
-        }
-
-        .voter-photo:hover {
-            transform: scale(1.5);
-            z-index: 10;
-            position: relative;
-        }
-
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .status-badge:hover {
-            transform: scale(1.05);
-        }
-
-        .status-reached { background: #dcfce7; color: #166534; }
-        .status-notreached { background: #fee2e2; color: #991b1b; }
-        .status-undecided { background: #fef3c7; color: #92400e; }
-        .status-voter { background: #dbeafe; color: #1e40af; }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        .empty-state h3 {
-            color: #475569;
-            margin-bottom: 6px;
-        }
-
-        .empty-state .hint {
-            font-size: 13px;
-            color: #94a3b8;
-        }
-
-        /* ================================================================
-           LOADING OVERLAY
-           ================================================================ */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(6px);
-            z-index: 999;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .spinner {
-            width: 56px;
-            height: 56px;
-            border: 5px solid rgba(255,255,255,0.2);
-            border-top-color: #ffffff;
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: white;
-            font-size: 18px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-
-        .loading-progress {
-            width: 240px;
-            height: 4px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .loading-progress-bar {
-            height: 100%;
-            width: 0%;
-            background: white;
-            border-radius: 4px;
-            transition: width 0.4s ease;
-        }
-
-        /* ================================================================
-           TOAST NOTIFICATIONS
-           ================================================================ */
-        .toast-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-weight: 500;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-            z-index: 1000;
-            max-width: 420px;
-            animation: slideUp 0.4s ease;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .toast-success { background: #22c55e; color: white; }
-        .toast-error { background: #ef4444; color: white; }
-        .toast-info { background: #3b82f6; color: white; }
-        .toast-warning { background: #f59e0b; color: white; }
-
-        .toast-close {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            margin-left: 8px;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .toast-close:hover {
-            opacity: 1;
-        }
-
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
-        @media (max-width: 700px) {
-            body { padding: 12px; }
-            .header h1 { font-size: 22px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .toolbar { flex-direction: column; align-items: stretch; }
-            .search-box input { width: 100%; }
-            .toast-container {
-                bottom: 16px;
-                right: 16px;
-                left: 16px;
-                max-width: none;
-                font-size: 14px;
-                padding: 14px 18px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .stats-grid { grid-template-columns: 1fr; }
-            .header h1 { font-size: 18px; }
-            .header-actions .btn { font-size: 12px; padding: 6px 12px; }
-            .stat-card .value { font-size: 24px; }
-        }
-
-        /* ================================================================
-           DOUBLE-CLICK HINT
-           ================================================================ */
-        .hint-bar {
-            background: #f8fafc;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 16px;
-            border: 1px dashed #e2e8f0;
-        }
-
-        .hint-bar i {
-            color: #3b82f6;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>White Saffron Matcha Menu</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --green:#17351f;
+  --deep:#07190f;
+  --matcha:#8fa63f;
+  --cream:#f5efe3;
+  --paper:#efe4d1;
+  --line:#b8ab93;
+  --gold:#c6a25d;
+  --text:#1f241b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#d8cbb7;
+  font-family:Montserrat,Arial,sans-serif;
+  color:var(--text);
+}
+.wrap{
+  width:100%;
+  max-width:1024px;
+  margin:0 auto;
+  background:var(--paper);
+  box-shadow:0 15px 45px rgba(0,0,0,.25);
+}
+.hero{
+  height:270px;
+  background:
+    radial-gradient(circle at 7% 0%,#8fa63f 0 80px,transparent 82px),
+    radial-gradient(circle at 95% 0%,#8fa63f 0 100px,transparent 102px),
+    linear-gradient(120deg,#08170e,#183820 55%,#07170d);
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:white;
+}
+.hero:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:230px;
+  height:270px;
+  background:radial-gradient(circle at 0 0,#111 0 75px,transparent 76px);
+  opacity:.35;
+}
+.hero:after{
+  content:"";
+  position:absolute;
+  right:0;
+  top:0;
+  width:250px;
+  height:270px;
+  background:radial-gradient(circle at 100% 0,#111 0 90px,transparent 91px);
+  opacity:.35;
+}
+.brand-top{
+  position:absolute;
+  top:18px;
+  left:0;
+  right:0;
+  text-align:center;
+  font-size:13px;
+  letter-spacing:7px;
+  color:#d9c178;
+  font-weight:700;
+}
+.hero h1{
+  margin:0;
+  font-family:"Playfair Display",serif;
+  font-size:96px;
+  letter-spacing:18px;
+  line-height:.9;
+}
+.hero h2{
+  margin:3px 0 0;
+  font-size:29px;
+  letter-spacing:20px;
+  text-transform:uppercase;
+  color:#d9c178;
+  font-weight:500;
+}
+.hero .script{
+  font-family:"Great Vibes",cursive;
+  font-size:27px;
+  margin-top:8px;
+  color:#fff7e8;
+}
+
+.way{
+  height:150px;
+  display:grid;
+  grid-template-columns:180px repeat(5,1fr);
+  border-bottom:1px solid var(--line);
+  background:#f5efe3;
+}
+.way-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-family:"Playfair Display",serif;
+  font-size:31px;
+  text-transform:uppercase;
+  line-height:.95;
+  font-weight:800;
+}
+.step{
+  border-left:1px dashed #b9ab92;
+  text-align:center;
+  padding:20px 12px 10px;
+}
+.step-icon{
+  width:48px;
+  height:48px;
+  margin:0 auto 10px;
+  border:3px solid var(--green);
+  border-radius:12px;
+  position:relative;
+}
+.step-icon:after{
+  content:"";
+  position:absolute;
+  inset:9px;
+  border-radius:50%;
+  border:2px solid var(--matcha);
+}
+.step b{
+  display:block;
+  font-size:13px;
+  text-transform:uppercase;
+}
+.step p{
+  margin:6px 0 0;
+  font-size:12px;
+  line-height:1.3;
+}
+
+.menu{
+  padding:18px 0 0;
+}
+.row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+}
+.card{
+  min-height:382px;
+  position:relative;
+  padding:48px 18px 74px 140px;
+  border-bottom:1px solid var(--line);
+  background:#f6efe3;
+  overflow:hidden;
+}
+.card:not(:first-child){
+  border-left:1px solid #d2c6b0;
+}
+.card:nth-child(even){
+  background:#f0e6d5;
+}
+.card h3{
+  margin:0 0 13px;
+  font-family:"Playfair Display",serif;
+  font-size:23px;
+  line-height:.96;
+  text-transform:uppercase;
+}
+.rule{
+  height:1px;
+  background:#aa9e88;
+  margin-bottom:13px;
+}
+.desc{
+  font-size:12px;
+  line-height:1.42;
+  min-height:54px;
+}
+.card h4{
+  margin:13px 0 7px;
+  font-size:11px;
+  text-transform:uppercase;
+}
+.card ul{
+  padding-left:14px;
+  margin:0;
+  font-size:11px;
+  line-height:1.45;
+}
+.number{
+  position:absolute;
+  left:140px;
+  top:16px;
+  width:31px;
+  height:31px;
+  background:var(--green);
+  color:white;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  font-weight:800;
+  font-size:14px;
+}
+.cup{
+  position:absolute;
+  left:0;
+  bottom:42px;
+  width:132px;
+  height:260px;
+}
+.cup:before{
+  content:"";
+  position:absolute;
+  left:24px;
+  bottom:0;
+  width:90px;
+  height:220px;
+  border-radius:10px 10px 26px 26px;
+  background:linear-gradient(to bottom,#f5f1d0 0 20%,#96aa42 21% 68%,#e4ecba 69% 100%);
+  box-shadow:inset 0 0 0 5px rgba(255,255,255,.35),0 9px 18px rgba(0,0,0,.17);
+}
+.cup:after{
+  content:"";
+  position:absolute;
+  left:35px;
+  top:48px;
+  width:68px;
+  height:25px;
+  border-radius:50%;
+  background:rgba(255,255,255,.45);
+}
+.brown:before{background:linear-gradient(to bottom,#f4efc4 0 22%,#95aa42 23% 65%,#b67838 66% 100%)}
+.pink:before{background:linear-gradient(to bottom,#f5adbd 0 25%,#95aa42 26% 70%,#e7edbc 71% 100%)}
+.mango:before{background:linear-gradient(to bottom,#efbd4d 0 25%,#92a940 26% 72%,#e4ecba 73% 100%)}
+.mocha:before{background:linear-gradient(to bottom,#65402d,#8b5f3e)}
+.lemon:before{background:linear-gradient(to bottom,#90aa41 0 48%,#e55745 49% 75%,#f2eeda 76% 100%)}
+.single:before{background:linear-gradient(to bottom,#90aa41 0 50%,#e9c643 51% 100%)}
+.price{
+  position:absolute;
+  right:23px;
+  bottom:31px;
+  background:var(--green);
+  color:white;
+  border-radius:4px;
+  padding:8px 21px;
+  font-size:14px;
+  letter-spacing:1px;
+  font-weight:600;
+}
+
+.bottom{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  padding:18px;
+}
+.panel{
+  border:1px solid var(--line);
+  background:#f7f1e7;
+  min-height:210px;
+  padding:17px 22px;
+}
+.panel-title{
+  text-align:center;
+  font-size:22px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  margin-bottom:16px;
+}
+.flavours{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+  text-align:center;
+  font-size:11px;
+}
+.fruit{
+  width:42px;
+  height:42px;
+  margin:0 auto 7px;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#f8d56a,#93a940 65%);
+}
+.addons{
+  margin-top:15px;
+  background:var(--green);
+  color:white;
+  border-radius:12px;
+  padding:15px 18px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px 20px;
+  font-size:12px;
+}
+.addons b{
+  color:#d9c178;
+  grid-column:1/-1;
+  font-size:15px;
+  text-transform:uppercase;
+}
+.about-icons{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  text-align:center;
+  font-size:11px;
+}
+.about-icon{
+  width:54px;
+  height:54px;
+  margin:0 auto 7px;
+  border:2px solid var(--green);
+  border-radius:50%;
+}
+.tip{
+  margin-top:16px;
+  background:var(--green);
+  color:white;
+  border-radius:12px;
+  padding:15px 18px;
+  font-size:12px;
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  align-items:center;
+}
+.thanks{
+  font-family:"Great Vibes",cursive;
+  color:#d9c178;
+  font-size:30px;
+  white-space:nowrap;
+}
+.footer{
+  min-height:72px;
+  background:var(--green);
+  color:white;
+  display:grid;
+  grid-template-columns:1.3fr 1fr 1fr 1fr;
+  align-items:center;
+  gap:20px;
+  padding:12px 24px;
+  font-size:12px;
+}
+.footer h3{
+  margin:0;
+  font-size:19px;
+  letter-spacing:4px;
+}
+.footer small{color:#d9c178}
+
+@media(max-width:850px){
+  .wrap{box-shadow:none}
+  .hero{height:225px}
+  .hero h1{font-size:56px;letter-spacing:9px}
+  .hero h2{font-size:20px;letter-spacing:10px}
+  .brand-top{letter-spacing:4px}
+  .way{height:auto;grid-template-columns:1fr}
+  .step{border-left:0;border-top:1px dashed #b9ab92}
+  .row{grid-template-columns:1fr}
+  .card{border-left:0!important;min-height:360px}
+  .bottom{grid-template-columns:1fr}
+  .footer{grid-template-columns:1fr;text-align:center}
+}
+@media print{
+  body{background:white}
+  .wrap{box-shadow:none;width:100%;max-width:none}
+}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-    <!-- ============================================================
-    LOADING OVERLAY
-    ============================================================ -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">Loading...</div>
-        <div class="loading-progress">
-            <div class="loading-progress-bar" id="loadingProgressBar"></div>
-        </div>
+  <header class="hero">
+    <div class="brand-top">WHITE SAFFRON</div>
+    <div>
+      <h1>MATCHA</h1>
+      <h2>Collection</h2>
+      <div class="script">Fresh, creamy and handcrafted</div>
+    </div>
+  </header>
+
+  <section class="way">
+    <div class="way-title">Our<br>Matcha<br>Way</div>
+    <div class="step"><div class="step-icon"></div><b>1. Syrup / Flavour</b><p>Add flavour or syrup to the cup</p></div>
+    <div class="step"><div class="step-icon"></div><b>2. Ice</b><p>Fill the cup half with ice</p></div>
+    <div class="step"><div class="step-icon"></div><b>3. Milk / Water</b><p>Add milk 200ml or water</p></div>
+    <div class="step"><div class="step-icon"></div><b>4. Matcha</b><p>Pour prepared matcha on top</p></div>
+    <div class="step"><div class="step-icon"></div><b>5. Topping</b><p>Add foam or topping if any</p></div>
+  </section>
+
+  <main class="menu">
+    <section class="row">
+      <article class="card">
+        <div class="cup"></div><div class="number">1</div>
+        <h3>Iced Matcha Latte</h3><div class="rule"></div>
+        <div class="desc">Smooth and creamy classic matcha latte with your choice of syrup.</div>
+        <h4>Ingredients</h4>
+        <ul><li>3 Syrup / 25ml</li><li>Ice 100g+</li><li>Milk 200ml</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 45</div>
+      </article>
+
+      <article class="card">
+        <div class="cup"></div><div class="number">2</div>
+        <h3>Matcha Latte<br>with Cheese Foam</h3><div class="rule"></div>
+        <div class="desc">Creamy matcha latte with rich and salty cheese cold foam.</div>
+        <h4>Ingredients</h4>
+        <ul><li>Cheese foam 100g+</li><li>Milk 200ml</li><li>Ice 100g+</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 55</div>
+      </article>
+
+      <article class="card">
+        <div class="cup brown"></div><div class="number">3</div>
+        <h3>Brown Sugar Matcha</h3><div class="rule"></div>
+        <div class="desc">Rich matcha latte with brown sugar syrup and caramel flavour.</div>
+        <h4>Ingredients</h4>
+        <ul><li>Brown sugar 25ml</li><li>Ice 100g+</li><li>Milk 200ml</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 50</div>
+      </article>
+
+      <article class="card">
+        <div class="cup pink"></div><div class="number">4</div>
+        <h3>Strawberry Cold Foam Matcha</h3><div class="rule"></div>
+        <div class="desc">Fruity strawberry cold foam with smooth matcha latte.</div>
+        <h4>Ingredients</h4>
+        <ul><li>Strawberry foam</li><li>Strawberry puree</li><li>Milk 200ml</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 55</div>
+      </article>
+    </section>
+
+    <section class="row">
+      <article class="card">
+        <div class="cup mango"></div><div class="number">5</div>
+        <h3>Mango Cold Foam Matcha</h3><div class="rule"></div>
+        <div class="desc">Tropical mango foam on top of creamy matcha latte.</div>
+        <h4>Ingredients</h4>
+        <ul><li>Mango foam</li><li>Mango puree</li><li>Mango juice</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 55</div>
+      </article>
+
+      <article class="card">
+        <div class="cup mocha"></div><div class="number">6</div>
+        <h3>Mocha Matcha</h3><div class="rule"></div>
+        <div class="desc">Chocolate matcha latte with creamy mocha flavour.</div>
+        <h4>Ingredients</h4>
+        <ul><li>Cocoa powder</li><li>Chocolate syrup</li><li>Milk 200ml</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 50</div>
+      </article>
+
+      <article class="card">
+        <div class="cup lemon"></div><div class="number">7</div>
+        <h3>Matcha Lemonade<br>Mixed</h3><div class="rule"></div>
+        <div class="desc">Refreshing matcha lemonade with peach and strawberry.</div>
+        <h4>Ingredients</h4>
+        <ul><li>Peach syrup 15ml</li><li>Strawberry syrup 15ml</li><li>Water 200ml</li><li>Ice full</li></ul>
+        <div class="price">MVR 45</div>
+      </article>
+
+      <article class="card">
+        <div class="cup single"></div><div class="number">8</div>
+        <h3>Matcha Lemonade<br>Single Flavour</h3><div class="rule"></div>
+        <div class="desc">Choose your favourite single flavour and enjoy.</div>
+        <h4>Ingredients</h4>
+        <ul><li>One syrup 25ml</li><li>Water 200ml</li><li>Ice full</li><li>Matcha 5g</li></ul>
+        <div class="price">MVR 45</div>
+      </article>
+    </section>
+  </main>
+
+  <section class="bottom">
+    <div class="panel">
+      <div class="panel-title">Choose Your Flavour</div>
+      <div class="flavours">
+        <div><div class="fruit"></div>Strawberry</div>
+        <div><div class="fruit"></div>Mango</div>
+        <div><div class="fruit"></div>Peach</div>
+        <div><div class="fruit"></div>Brown Sugar</div>
+        <div><div class="fruit"></div>Chocolate</div>
+      </div>
+      <div class="addons">
+        <b>Add On</b>
+        <span>Cheese Foam + MVR 10</span>
+        <span>Cold Foam + MVR 10</span>
+        <span>Extra Matcha + MVR 8</span>
+        <span>Extra Syrup + MVR 5</span>
+      </div>
     </div>
 
-    <!-- ============================================================
-    DASHBOARD
-    ============================================================ -->
-    <div class="dashboard">
-
-        <!-- HEADER -->
-        <div class="header">
-            <h1>
-                <i class="fas fa-vote-yea"></i>
-                Voter Management
-                <span class="header-badge loading" id="connectionStatus">
-                    <i class="fas fa-spinner fa-spin"></i> Connecting...
-                </span>
-            </h1>
-            <div class="header-actions">
-                <button class="btn btn-outline" onclick="refreshData()" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-        </div>
-
-        <!-- STATS CARDS -->
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card stat-total">
-                <div class="label"><i class="fas fa-users"></i> Total</div>
-                <div class="value" id="totalCount">0</div>
-            </div>
-            <div class="stat-card stat-reached">
-                <div class="label"><i class="fas fa-check-circle"></i> Reached</div>
-                <div class="value" id="reachedCount">0</div>
-            </div>
-            <div class="stat-card stat-notreached">
-                <div class="label"><i class="fas fa-times-circle"></i> Not Reached</div>
-                <div class="value" id="notReachedCount">0</div>
-            </div>
-            <div class="stat-card stat-voter">
-                <div class="label"><i class="fas fa-user-check"></i> Voter</div>
-                <div class="value" id="voterCount">0</div>
-            </div>
-            <div class="stat-card stat-undecided">
-                <div class="label"><i class="fas fa-minus-circle"></i> Not Decide</div>
-                <div class="value" id="undecidedCount">0</div>
-            </div>
-        </div>
-
-        <!-- TOOLBAR -->
-        <div class="toolbar">
-            <div class="toolbar-left">
-                <span style="font-size:14px;color:#64748b;">
-                    <i class="fas fa-info-circle"></i> 
-                    <span id="voterCountLabel">0</span> voters in database
-                </span>
-            </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search by name, ID, or phone..." id="searchInput" />
-                </div>
-                <select class="filter-select" id="statusFilter">
-                    <option value="all">All Status</option>
-                    <option value="reached">Reached</option>
-                    <option value="notreached">Not Reached</option>
-                    <option value="voter">Voter</option>
-                    <option value="undecided">Not Decide</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- TABLE -->
-        <div class="table-container" id="tableContainer">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Photo</th>
-                        <th>Name</th>
-                        <th>National ID</th>
-                        <th>Const.</th>
-                        <th>District</th>
-                        <th>House</th>
-                        <th>Lives In</th>
-                        <th>Mobile</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="voterTableBody">
-                    <!-- Rows injected by JavaScript -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- HINT BAR -->
-        <div class="hint-bar">
-            <i class="fas fa-mouse-pointer"></i>
-            <span><strong>Double-click</strong> any row to cycle through statuses: Reached → Not Reached → Voter → Not Decide</span>
-        </div>
-
-        <!-- FOOTER -->
-        <div style="margin-top: 16px; text-align: center; color: #94a3b8; font-size: 13px;">
-            <i class="fas fa-database"></i> 
-            <span id="lastUpdated">Last updated: just now</span>
-        </div>
+    <div class="panel">
+      <div class="panel-title">About Matcha</div>
+      <div class="about-icons">
+        <div><div class="about-icon"></div>Energy</div>
+        <div><div class="about-icon"></div>Antioxidants</div>
+        <div><div class="about-icon"></div>Focus</div>
+        <div><div class="about-icon"></div>Fresh Taste</div>
+      </div>
+      <div class="tip">
+        <span>Premium matcha mixed with milk, water, syrup, cold foam and fresh toppings.</span>
+        <span class="thanks">Thank You</span>
+      </div>
     </div>
-
-    <!-- ============================================================
-    JAVASCRIPT — Supabase Integration
-    ============================================================ -->
-    <script>
-        // ================================================================
-        //  ✅ YOUR SUPABASE CREDENTIALS
-        // ================================================================
-        const SUPABASE_CONFIG = {
-            url: 'https://tmuptbwwmwlrmewhoodn.supabase.co',
-            anonKey: 'sb_publishable_LAn11iS2zqMq1B33IQJxIW_NbgWKi1',
-            table: 'voters'
-        };
-
-        // ================================================================
-        //  STATE
-        // ================================================================
-        let state = {
-            voters: [],
-            filteredVoters: [],
-            isLoading: false,
-            stats: { total: 0, reached: 0, notreached: 0, voter: 0, undecided: 0 },
-            lastUpdated: new Date(),
-            isSupabaseConnected: false
-        };
-
-        // ================================================================
-        //  DOM REFS
-        // ================================================================
-        const DOM = {
-            tableBody: document.getElementById('voterTableBody'),
-            searchInput: document.getElementById('searchInput'),
-            statusFilter: document.getElementById('statusFilter'),
-            loadingOverlay: document.getElementById('loadingOverlay'),
-            loadingText: document.getElementById('loadingText'),
-            loadingProgress: document.getElementById('loadingProgressBar'),
-            tableContainer: document.getElementById('tableContainer'),
-            refreshBtn: document.getElementById('refreshBtn'),
-            connectionStatus: document.getElementById('connectionStatus'),
-            voterCountLabel: document.getElementById('voterCountLabel'),
-            stats: {
-                total: document.getElementById('totalCount'),
-                reached: document.getElementById('reachedCount'),
-                notreached: document.getElementById('notReachedCount'),
-                voter: document.getElementById('voterCount'),
-                undecided: document.getElementById('undecidedCount')
-            },
-            footer: {
-                updated: document.getElementById('lastUpdated')
-            }
-        };
-
-        // ================================================================
-        //  UTILITY FUNCTIONS
-        // ================================================================
-        function escapeHtml(text) {
-            if (!text) return '';
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-            return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
-        }
-
-        function formatStatus(status) {
-            if (!status) return 'Unknown';
-            const map = {
-                'reached': 'Reached',
-                'notreached': 'Not Reached',
-                'voter': 'Voter',
-                'undecided': 'Not Decide'
-            };
-            return map[status] || status.charAt(0).toUpperCase() + status.slice(1);
-        }
-
-        function formatDate(date) {
-            if (!date) return 'never';
-            return new Date(date).toLocaleString();
-        }
-
-        function getSupabaseHeaders() {
-            return {
-                'apikey': SUPABASE_CONFIG.anonKey,
-                'Authorization': 'Bearer ' + SUPABASE_CONFIG.anonKey,
-                'Content-Type': 'application/json'
-            };
-        }
-
-        function updateConnectionStatus(status, message) {
-            const el = DOM.connectionStatus;
-            el.className = 'header-badge ' + status;
-            el.innerHTML = message;
-        }
-
-        // ================================================================
-        //  TOAST NOTIFICATIONS
-        // ================================================================
-        function showToast(message, type = 'info') {
-            const existing = document.querySelector('.toast-container');
-            if (existing) existing.remove();
-
-            const container = document.createElement('div');
-            container.className = `toast-container toast-${type}`;
-            container.innerHTML = `
-                <span>${message}</span>
-                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
-            `;
-            document.body.appendChild(container);
-
-            setTimeout(() => {
-                if (container.parentElement) container.remove();
-            }, 4000);
-        }
-
-        // ================================================================
-        //  LOADING OVERLAY
-        // ================================================================
-        function showLoading(message = 'Loading...') {
-            DOM.loadingText.textContent = message;
-            DOM.loadingProgress.style.display = 'none';
-            DOM.loadingProgress.style.width = '0%';
-            DOM.loadingOverlay.classList.add('active');
-            state.isLoading = true;
-        }
-
-        function hideLoading() {
-            DOM.loadingOverlay.classList.remove('active');
-            state.isLoading = false;
-        }
-
-        // ================================================================
-        //  SUPABASE API CALLS
-        // ================================================================
-        async function supabaseFetch(table, options = {}) {
-            const url = `${SUPABASE_CONFIG.url}/rest/v1/${table}`;
-            const params = new URLSearchParams();
-
-            if (options.select) params.append('select', options.select);
-            if (options.order) params.append('order', options.order);
-
-            const finalUrl = params.toString() ? `${url}?${params}` : url;
-
-            const response = await fetch(finalUrl, {
-                headers: getSupabaseHeaders()
-            });
-
-            if (!response.ok) {
-                const error = await response.text();
-                throw new Error(`Supabase error ${response.status}: ${error}`);
-            }
-
-            return response.json();
-        }
-
-        async function supabaseUpdate(table, id, data) {
-            const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/${table}?id=eq.${id}`, {
-                method: 'PATCH',
-                headers: getSupabaseHeaders(),
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) {
-                const error = await response.text();
-                throw new Error(`Update failed: ${error}`);
-            }
-            return response;
-        }
-
-        // ================================================================
-        //  FETCH VOTERS FROM SUPABASE
-        // ================================================================
-        async function fetchVoters() {
-            try {
-                showLoading('Loading voters from Supabase...');
-                updateConnectionStatus('loading', '<i class="fas fa-spinner fa-spin"></i> Loading...');
-
-                const data = await supabaseFetch(SUPABASE_CONFIG.table, {
-                    select: '*',
-                    order: 'created_at.desc'
-                });
-
-                state.voters = data || [];
-                state.filteredVoters = [...state.voters];
-                state.lastUpdated = new Date();
-                state.isSupabaseConnected = true;
-
-                updateConnectionStatus('connected', '<i class="fas fa-link"></i> Connected');
-
-                updateStats();
-                renderTable();
-                updateFooter();
-                hideLoading();
-
-                if (state.voters.length === 0) {
-                    showToast('ℹ️ No voters found in the database.', 'info');
-                }
-
-                return state.voters;
-            } catch (error) {
-                console.error('Supabase fetch error:', error);
-                state.isSupabaseConnected = false;
-                updateConnectionStatus('disconnected', '<i class="fas fa-exclamation-triangle"></i> Disconnected');
-
-                hideLoading();
-                showToast('❌ Failed to connect to Supabase: ' + error.message, 'error');
-
-                // Load mock data as fallback
-                if (state.voters.length === 0) {
-                    loadMockData();
-                }
-                return [];
-            }
-        }
-
-        // ================================================================
-        //  MOCK DATA (fallback when Supabase is unavailable)
-        // ================================================================
-        function loadMockData() {
-            state.voters = [
-                { id: 1, photo: 'https://i.pravatar.cc/60?img=1', name: 'Ahmed Hassan', national_id: '12345678901234', const: 'C-01', district: 'Cairo', house: '12A', lives_in: 'Nasr City', phone: '01001234567', status: 'reached' },
-                { id: 2, photo: 'https://i.pravatar.cc/60?img=2', name: 'Mona Ibrahim', national_id: '22345678901234', const: 'C-02', district: 'Alexandria', house: '8B', lives_in: 'Sidi Gaber', phone: '01109876543', status: 'voter' },
-                { id: 3, photo: 'https://i.pravatar.cc/60?img=3', name: 'Khaled Youssef', national_id: '32345678901234', const: 'C-03', district: 'Giza', house: '5', lives_in: 'Dokki', phone: '01234567890', status: 'notreached' },
-                { id: 4, photo: 'https://i.pravatar.cc/60?img=4', name: 'Sara Mahmoud', national_id: '42345678901234', const: 'C-04', district: 'Luxor', house: '7C', lives_in: 'East Bank', phone: '01567890123', status: 'undecided' },
-                { id: 5, photo: 'https://i.pravatar.cc/60?img=5', name: 'Omar Ali', national_id: '52345678901234', const: 'C-05', district: 'Aswan', house: '2', lives_in: 'Nile Corniche', phone: '01678901234', status: 'reached' }
-            ];
-            state.filteredVoters = [...state.voters];
-            state.lastUpdated = new Date();
-            state.isSupabaseConnected = false;
-
-            updateConnectionStatus('disconnected', '<i class="fas fa-database"></i> Mock Data');
-
-            updateStats();
-            renderTable();
-            updateFooter();
-            showToast('📊 Using mock data (Supabase unavailable)', 'warning');
-        }
-
-        // ================================================================
-        //  RENDER TABLE
-        // ================================================================
-        function renderTable(data = state.filteredVoters) {
-            const tbody = DOM.tableBody;
-
-            if (!data || data.length === 0) {
-                tbody.innerHTML = `
-                    <tr><td colspan="9">
-                        <div class="empty-state">
-                            <i class="fas fa-inbox"></i>
-                            <h3>No voters found</h3>
-                            <p class="hint">Import data into your Supabase table to get started.</p>
-                        </div>
-                    </td></tr>
-                `;
-                return;
-            }
-
-            const defaultPhoto = 'https://ui-avatars.com/api/?background=e2e8f0&color=475569&name=';
-
-            tbody.innerHTML = data.map(v => {
-                const photoUrl = v.photo || defaultPhoto + encodeURIComponent(v.name || 'Voter');
-                return `
-                    <tr data-id="${v.id || v.national_id || Math.random()}">
-                        <td>
-                            <img src="${photoUrl}" 
-                                 class="voter-photo" 
-                                 alt="${escapeHtml(v.name || 'Voter')}" 
-                                 loading="lazy"
-                                 onerror="this.src='${defaultPhoto + encodeURIComponent(v.name || 'Unknown')}'" />
-                        </td>
-                        <td><strong>${escapeHtml(v.name || '')}</strong></td>
-                        <td>${escapeHtml(v.national_id || '')}</td>
-                        <td>${escapeHtml(v.const || '')}</td>
-                        <td>${escapeHtml(v.district || '')}</td>
-                        <td>${escapeHtml(v.house || '')}</td>
-                        <td>${escapeHtml(v.lives_in || '')}</td>
-                        <td>${escapeHtml(v.phone || '')}</td>
-                        <td><span class="status-badge status-${v.status || 'undecided'}">${escapeHtml(formatStatus(v.status))}</span></td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // ================================================================
-        //  STATS
-        // ================================================================
-        function updateStats() {
-            const voters = state.voters;
-            state.stats = {
-                total: voters.length,
-                reached: voters.filter(v => v.status === 'reached').length,
-                notreached: voters.filter(v => v.status === 'notreached').length,
-                voter: voters.filter(v => v.status === 'voter').length,
-                undecided: voters.filter(v => v.status === 'undecided').length
-            };
-            updateStatsUI();
-        }
-
-        function updateStatsUI() {
-            const s = state.stats;
-            DOM.stats.total.textContent = s.total || 0;
-            DOM.stats.reached.textContent = s.reached || 0;
-            DOM.stats.notreached.textContent = s.notreached || 0;
-            DOM.stats.voter.textContent = s.voter || 0;
-            DOM.stats.undecided.textContent = s.undecided || 0;
-            DOM.voterCountLabel.textContent = s.total || 0;
-        }
-
-        function updateFooter() {
-            DOM.footer.updated.textContent = 'Last updated: ' + formatDate(state.lastUpdated);
-        }
-
-        // ================================================================
-        //  FILTER & SEARCH
-        // ================================================================
-        let searchDebounceTimer;
-
-        function filterTable() {
-            const search = DOM.searchInput.value.toLowerCase().trim();
-            const status = DOM.statusFilter.value;
-
-            state.filteredVoters = state.voters.filter(v => {
-                const matchSearch =
-                    (v.name || '').toLowerCase().includes(search) ||
-                    (v.national_id || '').includes(search) ||
-                    (v.phone || '').includes(search) ||
-                    (v.district || '').toLowerCase().includes(search) ||
-                    (v.lives_in || '').toLowerCase().includes(search);
-
-                const matchStatus = status === 'all' || (v.status || 'undecided') === status;
-
-                return matchSearch && matchStatus;
-            });
-
-            renderTable(state.filteredVoters);
-        }
-
-        // ================================================================
-        //  DOUBLE-CLICK STATUS TOGGLE (UPDATES SUPABASE)
-        // ================================================================
-        function setupRowDoubleClick() {
-            document.addEventListener('dblclick', async function(e) {
-                const row = e.target.closest('tr');
-                if (!row) return;
-
-                const id = row.dataset.id;
-                const voter = state.voters.find(v => String(v.id || v.national_id) === String(id));
-                if (!voter) return;
-
-                const statuses = ['reached', 'notreached', 'voter', 'undecided'];
-                const currentIndex = statuses.indexOf(voter.status);
-                const nextIndex = (currentIndex + 1) % statuses.length;
-                const newStatus = statuses[nextIndex];
-
-                // Update in Supabase
-                if (state.isSupabaseConnected && voter.id) {
-                    try {
-                        await supabaseUpdate(SUPABASE_CONFIG.table, voter.id, { status: newStatus });
-                        showToast(`✅ ${voter.name} → ${formatStatus(newStatus)}`, 'success');
-                    } catch (error) {
-                        showToast('❌ Failed to update status: ' + error.message, 'error');
-                        return;
-                    }
-                } else {
-                    // If not connected, just update local state
-                    showToast(`🔄 ${voter.name} → ${formatStatus(newStatus)} (local only)`, 'warning');
-                }
-
-                voter.status = newStatus;
-                state.lastUpdated = new Date();
-
-                filterTable();
-                updateStats();
-                updateFooter();
-            });
-        }
-
-        // ================================================================
-        //  REFRESH DATA
-        // ================================================================
-        async function refreshData() {
-            if (state.isLoading) return;
-
-            DOM.refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-            DOM.refreshBtn.disabled = true;
-
-            try {
-                await fetchVoters();
-                showToast('🔄 Data refreshed from Supabase.', 'success');
-            } catch (error) {
-                showToast('❌ Refresh failed: ' + error.message, 'error');
-            } finally {
-                DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-                DOM.refreshBtn.disabled = false;
-            }
-        }
-
-        // ================================================================
-        //  KEYBOARD SHORTCUTS
-        // ================================================================
-        function setupKeyboardShortcuts() {
-            document.addEventListener('keydown', function(e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-                    e.preventDefault();
-                    DOM.searchInput.focus();
-                    DOM.searchInput.select();
-                }
-                if (e.key === 'Escape' && document.activeElement === DOM.searchInput) {
-                    DOM.searchInput.value = '';
-                    filterTable();
-                    DOM.searchInput.blur();
-                }
-                if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-                    e.preventDefault();
-                    refreshData();
-                }
-            });
-        }
-
-        // ================================================================
-        //  AUTO-REFRESH (every 5 minutes)
-        // ================================================================
-        let autoRefreshInterval = null;
-
-        function startAutoRefresh(intervalMs = 300000) {
-            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            autoRefreshInterval = setInterval(() => {
-                if (!state.isLoading) {
-                    refreshData();
-                }
-            }, intervalMs);
-        }
-
-        // ================================================================
-        //  INITIALIZATION
-        // ================================================================
-        async function init() {
-            console.log('🗳️ Voter Management Dashboard');
-            console.log('🔗 Supabase URL:', SUPABASE_CONFIG.url);
-
-            // Setup event listeners
-            DOM.searchInput.addEventListener('input', function() {
-                clearTimeout(searchDebounceTimer);
-                searchDebounceTimer = setTimeout(filterTable, 300);
-            });
-
-            DOM.statusFilter.addEventListener('change', filterTable);
-
-            setupRowDoubleClick();
-            setupKeyboardShortcuts();
-
-            // Fetch from Supabase
-            try {
-                await fetchVoters();
-                console.log(`✅ Loaded ${state.voters.length} voters from Supabase`);
-            } catch (error) {
-                console.warn('⚠️ Using mock data fallback');
-                loadMockData();
-            }
-
-            startAutoRefresh();
-
-            // Expose functions globally
-            window.refreshData = refreshData;
-            window.filterTable = filterTable;
-            window.showToast = showToast;
-
-            console.log('✅ Dashboard ready!');
-            console.log('💡 Keyboard shortcuts: Ctrl+F (search), Esc (clear), Ctrl+R (refresh)');
-            console.log('💡 Double-click any row to change status');
-        }
-
-        // ================================================================
-        //  START THE APP
-        // ================================================================
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-    </script>
+  </section>
+
+  <footer class="footer">
+    <div><h3>WHITE SAFFRON</h3><small>Matcha Collection</small></div>
+    <div>Phone: 777 0000</div>
+    <div>Instagram: @whitesaffron</div>
+    <div>Maldives • MVR Prices</div>
+  </footer>
+
+</div>
 </body>
 </html>
