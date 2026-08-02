@@ -24,23 +24,19 @@
 
     <application
         android:allowBackup="true"
-        android:label="Invisible Reality Laboratory"
+        android:label="Universal Plant Response Lab"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name=".InvisibleRealityActivity"
-            android:exported="true"
-            android:label="Invisible Reality Lab"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:label="Invisible World Scanner"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".PlantResearchActivity"
             android:exported="true"
-            android:label="Plant Research Lab"
+            android:label="Universal Plant Response Lab"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
