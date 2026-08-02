@@ -30,6 +30,17 @@
         <activity
             android:name=".InvisibleRealityActivity"
             android:exported="true"
+            android:label="Invisible Reality Lab"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".PlantResearchActivity"
+            android:exported="true"
+            android:label="Plant Research Lab"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
