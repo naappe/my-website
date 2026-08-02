@@ -23,7 +23,6 @@ import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
-import android.net.wifi.ScanResult as WifiScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
@@ -93,8 +92,7 @@ public final class SensorEngine implements SensorEventListener {
     public String lastSavedPath = "No session saved";
     private final StringBuilder csv = new StringBuilder();
     private long recordStart;
-    private float baselineMag = -1, baselineVibration, baselineLight = -1;
-    private int baselineWifi = -127;
+    private float baselineMag = -1, baselineLight = -1;
     private long lastAnomalyAt;
     private final Set<String> bleSeen = new HashSet<>();
     private BluetoothLeScanner bleScanner;
@@ -108,10 +106,12 @@ public final class SensorEngine implements SensorEventListener {
     private final ScanCallback bleCallback = new ScanCallback() {
         @Override public void onScanResult(int callbackType, ScanResult result) {
             if (result == null || result.getDevice() == null) return;
-            String key = result.getDevice().getAddress();
-            if (key != null) bleSeen.add(key);
-            nearbyBleCount = bleSeen.size();
-            strongestBle = Math.max(strongestBle, result.getRssi());
+            try {
+                String key = result.getDevice().getAddress();
+                if (key != null) bleSeen.add(key);
+                nearbyBleCount = bleSeen.size();
+                strongestBle = Math.max(strongestBle, result.getRssi());
+            } catch (SecurityException ignored) { }
         }
     };
 
@@ -174,8 +174,8 @@ public final class SensorEngine implements SensorEventListener {
                 push(magneticHistory, magnetic); break;
             case Sensor.TYPE_ACCELEROMETER:
                 ax = event.values[0]; ay = event.values[1]; az = event.values[2];
-                float g = (float)Math.sqrt(ax*ax + ay*ay + az*az);
-                vibration = Math.abs(g - SensorManager.GRAVITY_EARTH);
+                float totalAcceleration = (float)Math.sqrt(ax*ax + ay*ay + az*az);
+                vibration = Math.abs(totalAcceleration - SensorManager.GRAVITY_EARTH);
                 vibrationPeak = Math.max(vibrationPeak * 0.985f, vibration);
                 push(vibrationHistory, vibration); break;
             case Sensor.TYPE_GYROSCOPE:
@@ -190,8 +190,7 @@ public final class SensorEngine implements SensorEventListener {
     @Override public void onAccuracyChanged(Sensor sensor, int accuracy) { }
 
     private void inspectCapabilities() {
-        List<Sensor> all = sensors.getSensorList(Sensor.TYPE_ALL);
-        sensorCount = all.size();
+        sensorCount = sensors.getSensorList(Sensor.TYPE_ALL).size();
         PackageManager pm = activity.getPackageManager();
         hasNfc = pm.hasSystemFeature(PackageManager.FEATURE_NFC);
         hasBle = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
@@ -218,7 +217,7 @@ public final class SensorEngine implements SensorEventListener {
         audioSummary = (rate == null ? "?" : rate) + " Hz · buffer " + (frames == null ? "?" : frames);
 
         try {
-            Display d = activity.getDisplay();
+            Display d = activity.getWindowManager().getDefaultDisplay();
             displaySummary = String.format(Locale.US, "%.0f Hz · %dx%d", d.getRefreshRate(), d.getMode().getPhysicalWidth(), d.getMode().getPhysicalHeight());
         } catch (Exception e) { displaySummary = "Display metadata unavailable"; }
     }
@@ -275,7 +274,7 @@ public final class SensorEngine implements SensorEventListener {
     private void updateFusion() {
         if (baselineMag < 0) captureBaseline();
         magneticAnomaly = clamp(Math.abs(magnetic - baselineMag) / 80f * 100f);
-        motionComplexity = clamp((vibration * 35f + (Math.abs(gx)+Math.abs(gy)+Math.abs(gz))*7f));
+        motionComplexity = clamp(vibration * 35f + (Math.abs(gx)+Math.abs(gy)+Math.abs(gz))*7f);
         wirelessDensity = clamp(nearbyWifiCount * 2.5f + nearbyBleCount * 3f + Math.max(0, wifiRssi + 100));
         float lightChange = baselineLight < 0 || light < 0 ? 0 : Math.min(100, Math.abs(light-baselineLight)/Math.max(10, baselineLight)*100);
         environmentScore = clamp(magneticAnomaly*.35f + motionComplexity*.25f + wirelessDensity*.20f + lightChange*.20f);
@@ -293,9 +292,7 @@ public final class SensorEngine implements SensorEventListener {
 
     public void captureBaseline() {
         baselineMag = magnetic;
-        baselineVibration = vibration;
         baselineLight = light;
-        baselineWifi = wifiRssi;
         anomalyEvents = 0;
         lastEvent = "Baseline captured";
     }
@@ -359,8 +356,8 @@ public final class SensorEngine implements SensorEventListener {
         return lines;
     }
 
-    private static String yes(boolean v) { return v ? "YES" : "NO"; }
-    private static String fmt(float v) { return String.format(Locale.US, "%.3f", v); }
-    private static float clamp(float v) { return Math.max(0, Math.min(100, v)); }
-    private static void push(Deque<Float> q, float v) { q.addLast(v); while (q.size()>120) q.removeFirst(); }
+    private static String yes(boolean value) { return value ? "YES" : "NO"; }
+    private static String fmt(float value) { return String.format(Locale.US, "%.3f", value); }
+    private static float clamp(float value) { return Math.max(0, Math.min(100, value)); }
+    private static void push(Deque<Float> queue, float value) { queue.addLast(value); while (queue.size()>120) queue.removeFirst(); }
 }
