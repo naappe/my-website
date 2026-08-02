@@ -3,11 +3,12 @@ package com.naappe.magneticfielddetector;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -17,10 +18,13 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.StatFs;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
@@ -29,438 +33,210 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity implements SensorEventListener {
     private static final int PERMISSION_REQUEST = 100;
 
     private SensorManager sensorManager;
-    private Sensor magneticSensor;
     private WifiManager wifiManager;
     private ConnectivityManager connectivityManager;
     private TelephonyManager telephonyManager;
-    private DetectorView detectorView;
+    private LabView labView;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
-    private final PhoneStateListener phoneStateListener = new PhoneStateListener() {
-        @Override
-        public void onSignalStrengthsChanged(SignalStrength signalStrength) {
-            super.onSignalStrengthsChanged(signalStrength);
-            if (detectorView != null && signalStrength != null) {
-                detectorView.updateCellular(signalStrength.getLevel(), signalStrength.toString());
-            }
+    private final PhoneStateListener phoneListener = new PhoneStateListener() {
+        @Override public void onSignalStrengthsChanged(SignalStrength signalStrength) {
+            if (labView != null && signalStrength != null) labView.cellLevel = signalStrength.getLevel();
         }
     };
 
-    private final Runnable signalUpdater = new Runnable() {
-        @Override
-        public void run() {
-            updateNetworkReadings();
+    private final Runnable updater = new Runnable() {
+        @Override public void run() {
+            updateNetwork();
+            updateDevice();
+            labView.invalidate();
             handler.postDelayed(this, 1500L);
         }
     };
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setStatusBarColor(Color.rgb(8, 18, 32));
-        getWindow().setNavigationBarColor(Color.rgb(8, 18, 32));
+        getWindow().setStatusBarColor(Color.rgb(7, 16, 29));
+        getWindow().setNavigationBarColor(Color.rgb(7, 16, 29));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        magneticSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-
-        detectorView = new DetectorView(this, magneticSensor != null);
-        setContentView(detectorView);
-        requestRequiredPermissions();
+        labView = new LabView(this, sensorManager);
+        setContentView(labView);
+        requestPermissionsIfNeeded();
     }
 
-    private void requestRequiredPermissions() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+    private void requestPermissionsIfNeeded() {
+        if (Build.VERSION.SDK_INT < 23) return;
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                 checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
                 (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED)) {
-            if (Build.VERSION.SDK_INT >= 33) {
-                requestPermissions(new String[]{
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.READ_PHONE_STATE,
-                        Manifest.permission.NEARBY_WIFI_DEVICES
-                }, PERMISSION_REQUEST);
-            } else {
-                requestPermissions(new String[]{
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.READ_PHONE_STATE
-                }, PERMISSION_REQUEST);
-            }
+            if (Build.VERSION.SDK_INT >= 33) requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE, Manifest.permission.NEARBY_WIFI_DEVICES}, PERMISSION_REQUEST);
+            else requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE}, PERMISSION_REQUEST);
         }
     }
 
-    @Override
-    protected void onResume() {
+    @Override protected void onResume() {
         super.onResume();
-        if (magneticSensor != null) {
-            sensorManager.registerListener(this, magneticSensor, SensorManager.SENSOR_DELAY_GAME);
+        for (int type : new int[]{Sensor.TYPE_MAGNETIC_FIELD, Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE, Sensor.TYPE_LIGHT, Sensor.TYPE_PROXIMITY, Sensor.TYPE_PRESSURE}) {
+            Sensor sensor = sensorManager.getDefaultSensor(type);
+            if (sensor != null) sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_GAME);
         }
-        try {
-            telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-        } catch (SecurityException ignored) {
-            detectorView.setPermissionMessage("Phone permission is needed for cellular signal.");
-        }
-        handler.post(signalUpdater);
+        try { telephonyManager.listen(phoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS); } catch (SecurityException ignored) { }
+        handler.post(updater);
     }
 
-    @Override
-    protected void onPause() {
+    @Override protected void onPause() {
         super.onPause();
         sensorManager.unregisterListener(this);
-        handler.removeCallbacks(signalUpdater);
-        try {
-            telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);
-        } catch (SecurityException ignored) {
+        handler.removeCallbacks(updater);
+        try { telephonyManager.listen(phoneListener, PhoneStateListener.LISTEN_NONE); } catch (SecurityException ignored) { }
+    }
+
+    @Override public void onSensorChanged(SensorEvent event) {
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                labView.mx = event.values[0]; labView.my = event.values[1]; labView.mz = event.values[2];
+                labView.magnetic = (float)Math.sqrt(labView.mx*labView.mx + labView.my*labView.my + labView.mz*labView.mz);
+                labView.accuracy = event.accuracy; break;
+            case Sensor.TYPE_ACCELEROMETER:
+                labView.ax = event.values[0]; labView.ay = event.values[1]; labView.az = event.values[2]; break;
+            case Sensor.TYPE_GYROSCOPE:
+                labView.gx = event.values[0]; labView.gy = event.values[1]; labView.gz = event.values[2]; break;
+            case Sensor.TYPE_LIGHT: labView.light = event.values[0]; break;
+            case Sensor.TYPE_PROXIMITY: labView.proximity = event.values[0]; break;
+            case Sensor.TYPE_PRESSURE: labView.pressure = event.values[0]; break;
         }
+        labView.invalidate();
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            float x = event.values[0];
-            float y = event.values[1];
-            float z = event.values[2];
-            float total = (float) Math.sqrt(x * x + y * y + z * z);
-            detectorView.updateMagnetic(x, y, z, total, event.accuracy);
-        }
-    }
+    @Override public void onAccuracyChanged(Sensor sensor, int accuracy) { labView.accuracy = accuracy; }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        detectorView.setAccuracy(accuracy);
-    }
-
-    private void updateNetworkReadings() {
-        int rssi = -127;
-        int linkSpeed = 0;
-        int frequency = 0;
-        String ssid = "Not connected";
-        boolean wifiConnected = false;
-
+    private void updateNetwork() {
+        labView.wifiConnected = false;
+        labView.ssid = "Not connected";
         try {
-            Network active = connectivityManager.getActiveNetwork();
-            NetworkCapabilities caps = active == null ? null : connectivityManager.getNetworkCapabilities(active);
-            wifiConnected = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
-
+            Network n = connectivityManager.getActiveNetwork();
+            NetworkCapabilities c = n == null ? null : connectivityManager.getNetworkCapabilities(n);
+            labView.wifiConnected = c != null && c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
             WifiInfo info = wifiManager.getConnectionInfo();
-            if (wifiConnected && info != null) {
-                rssi = info.getRssi();
-                linkSpeed = info.getLinkSpeed();
-                frequency = info.getFrequency();
-                String rawSsid = info.getSSID();
-                if (rawSsid != null && !WifiManager.UNKNOWN_SSID.equals(rawSsid)) {
-                    ssid = rawSsid.replace("\"", "");
-                } else {
-                    ssid = "Connected Wi-Fi";
-                }
+            if (labView.wifiConnected && info != null) {
+                labView.rssi = info.getRssi();
+                labView.linkSpeed = info.getLinkSpeed();
+                labView.frequency = info.getFrequency();
+                String raw = info.getSSID();
+                labView.ssid = raw == null || WifiManager.UNKNOWN_SSID.equals(raw) ? "Connected Wi-Fi" : raw.replace("\"", "");
             }
-        } catch (SecurityException e) {
-            detectorView.setPermissionMessage("Location / Nearby devices permission is needed for Wi-Fi details.");
-        }
-
-        detectorView.updateWifi(wifiConnected, ssid, rssi, linkSpeed, frequency);
+        } catch (SecurityException ignored) { labView.permissionNote = "Grant Nearby devices and Location for Wi-Fi details"; }
     }
 
-    private static final class DetectorView extends View {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Deque<Float> magneticHistory = new ArrayDeque<>();
-        private final Deque<Float> wifiHistory = new ArrayDeque<>();
-        private final boolean sensorAvailable;
+    private void updateDevice() {
+        Intent battery = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (battery != null) {
+            int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+            labView.batteryPercent = scale > 0 ? Math.round(level * 100f / scale) : -1;
+            labView.batteryTemp = battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) / 10f;
+            labView.batteryVoltage = battery.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) / 1000f;
+        }
+        StatFs fs = new StatFs(Environment.getDataDirectory().getPath());
+        long total = fs.getTotalBytes();
+        long free = fs.getAvailableBytes();
+        labView.storageTotalGb = total / 1073741824f;
+        labView.storageFreeGb = free / 1073741824f;
+    }
 
-        private int page = 0;
-        private float x, y, z, total;
-        private int accuracy = SensorManager.SENSOR_STATUS_UNRELIABLE;
-        private boolean wifiConnected;
-        private String ssid = "Not connected";
-        private int wifiRssi = -127;
-        private int linkSpeed;
-        private int frequency;
-        private int cellLevel = -1;
-        private String permissionMessage = "";
+    private static final class LabView extends View {
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final boolean hasMag, hasAccel, hasGyro, hasLight, hasProx, hasPressure;
+        int page = 0, accuracy, rssi = -127, linkSpeed, frequency, cellLevel = -1, batteryPercent = -1;
+        float mx,my,mz,magnetic, ax,ay,az, gx,gy,gz, light=-1, proximity=-1, pressure=-1, batteryTemp, batteryVoltage, storageTotalGb, storageFreeGb;
+        boolean wifiConnected;
+        String ssid="Not connected", permissionNote="";
 
-        DetectorView(Context context, boolean sensorAvailable) {
+        LabView(Context context, SensorManager sm) {
             super(context);
-            this.sensorAvailable = sensorAvailable;
-            setBackgroundColor(Color.rgb(8, 18, 32));
-            linePaint.setStyle(Paint.Style.STROKE);
-            linePaint.setStrokeWidth(4f);
-            linePaint.setColor(Color.rgb(71, 214, 180));
+            setBackgroundColor(Color.rgb(7,16,29));
+            hasMag = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null;
+            hasAccel = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null;
+            hasGyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null;
+            hasLight = sm.getDefaultSensor(Sensor.TYPE_LIGHT) != null;
+            hasProx = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY) != null;
+            hasPressure = sm.getDefaultSensor(Sensor.TYPE_PRESSURE) != null;
         }
 
-        void updateMagnetic(float x, float y, float z, float total, int accuracy) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.total = total;
-            this.accuracy = accuracy;
-            magneticHistory.addLast(total);
-            while (magneticHistory.size() > 90) magneticHistory.removeFirst();
-            invalidate();
-        }
-
-        void updateWifi(boolean connected, String ssid, int rssi, int linkSpeed, int frequency) {
-            this.wifiConnected = connected;
-            this.ssid = ssid;
-            this.wifiRssi = rssi;
-            this.linkSpeed = linkSpeed;
-            this.frequency = frequency;
-            if (connected && rssi > -127) {
-                wifiHistory.addLast((float) rssi);
-                while (wifiHistory.size() > 90) wifiHistory.removeFirst();
-            }
-            invalidate();
-        }
-
-        void updateCellular(int level, String ignoredRawData) {
-            this.cellLevel = level;
-            invalidate();
-        }
-
-        void setAccuracy(int accuracy) {
-            this.accuracy = accuracy;
-            invalidate();
-        }
-
-        void setPermissionMessage(String message) {
-            this.permissionMessage = message;
-            invalidate();
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            if (event.getAction() == MotionEvent.ACTION_UP && event.getY() < getHeight() * 0.17f) {
-                page = event.getX() < getWidth() / 2f ? 0 : 1;
-                invalidate();
-                return true;
+        @Override public boolean onTouchEvent(MotionEvent e) {
+            if (e.getAction()==MotionEvent.ACTION_UP && e.getY()>getHeight()*0.90f) {
+                page = Math.max(0, Math.min(3, (int)(e.getX()/(getWidth()/4f)))); invalidate();
             }
             return true;
         }
 
-        @Override
-        protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            drawHeader(canvas);
-            if (page == 0) drawMagnetic(canvas); else drawSignals(canvas);
+        @Override protected void onDraw(Canvas c) {
+            super.onDraw(c);
+            float w=getWidth(), h=getHeight(), pad=w*.055f;
+            p.setColor(Color.WHITE); p.setFakeBoldText(true); p.setTextSize(w*.061f); c.drawText("Sensor Laboratory",pad,h*.075f,p);
+            p.setFakeBoldText(false); p.setColor(Color.rgb(137,157,180)); p.setTextSize(w*.030f); c.drawText("Professional Android diagnostics",pad,h*.105f,p);
+            if(page==0) drawMagnetic(c); else if(page==1) drawRadio(c); else if(page==2) drawMotion(c); else drawDevice(c);
+            drawBottom(c);
         }
 
-        private void drawHeader(Canvas canvas) {
-            float w = getWidth();
-            float pad = w * 0.06f;
-            paint.setColor(Color.WHITE);
-            paint.setFakeBoldText(true);
-            paint.setTextSize(w * 0.064f);
-            canvas.drawText("Field Detector", pad, pad * 1.25f, paint);
-            paint.setFakeBoldText(false);
-
-            float top = w * 0.18f;
-            float tabH = w * 0.105f;
-            float gap = w * 0.018f;
-            float tabW = (w - pad * 2 - gap) / 2f;
-            drawTab(canvas, pad, top, tabW, tabH, "MAGNETIC", page == 0);
-            drawTab(canvas, pad + tabW + gap, top, tabW, tabH, "RADIO SIGNALS", page == 1);
+        private void drawMagnetic(Canvas c) {
+            float w=getWidth(), h=getHeight(), pad=w*.055f;
+            title(c,"MAGNETIC LAB","Direct magnetometer measurement",h*.16f);
+            gauge(c,w/2f,h*.34f,w*.23f,Math.min(magnetic/200f,1f),String.format(Locale.US,"%.1f",magnetic),"µT",magnetic<70?"Normal ambient field":magnetic<150?"Elevated field":"Strong field");
+            card(c,pad,h*.55f,w*.27f,h*.105f,"X",fmt(mx),"µT"); card(c,w*.365f,h*.55f,w*.27f,h*.105f,"Y",fmt(my),"µT"); card(c,w*.675f,h*.55f,w*.27f,h*.105f,"Z",fmt(mz),"µT");
+            card(c,pad,h*.69f,w*.43f,h*.11f,"SENSOR",hasMag?"AVAILABLE":"MISSING",hasMag?"hardware detected":"not supported");
+            card(c,w*.515f,h*.69f,w*.43f,h*.11f,"ACCURACY",accuracyLabel(),"sensor status");
         }
 
-        private void drawTab(Canvas canvas, float left, float top, float width, float height, String label, boolean active) {
-            paint.setColor(active ? Color.rgb(30, 100, 132) : Color.rgb(15, 31, 49));
-            canvas.drawRoundRect(left, top, left + width, top + height, 22f, 22f, paint);
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(getWidth() * 0.033f);
-            paint.setFakeBoldText(active);
-            paint.setColor(active ? Color.WHITE : Color.rgb(150, 168, 190));
-            canvas.drawText(label, left + width / 2f, top + height * 0.65f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
-            paint.setFakeBoldText(false);
+        private void drawRadio(Canvas c) {
+            float w=getWidth(), h=getHeight(), pad=w*.055f;
+            title(c,"RADIO LAB","Android-exposed network measurements",h*.16f);
+            gauge(c,w/2f,h*.34f,w*.23f,wifiConnected?Math.max(0,Math.min(1,(rssi+100)/70f)):0,wifiConnected?String.valueOf(rssi):"--","dBm",wifiConnected?signalLabel():"Wi-Fi not connected");
+            p.setTextAlign(Paint.Align.CENTER); p.setColor(Color.rgb(190,205,222)); p.setTextSize(w*.034f); c.drawText(ssid,w/2f,h*.505f,p); p.setTextAlign(Paint.Align.LEFT);
+            card(c,pad,h*.56f,w*.43f,h*.105f,"LINK SPEED",wifiConnected?String.valueOf(linkSpeed):"--","Mbps"); card(c,w*.515f,h*.56f,w*.43f,h*.105f,"FREQUENCY",wifiConnected?String.valueOf(frequency):"--","MHz");
+            card(c,pad,h*.70f,w*.43f,h*.105f,"WI-FI QUALITY",wifiConnected?quality()+"%":"--","calculated from RSSI"); card(c,w*.515f,h*.70f,w*.43f,h*.105f,"CELLULAR",cellLevel>=0?cellLevel+" / 4":"--","Android signal level");
+            if(!permissionNote.isEmpty()){p.setColor(Color.rgb(255,190,80));p.setTextSize(w*.025f);c.drawText(permissionNote,pad,h*.855f,p);}
         }
 
-        private void drawMagnetic(Canvas canvas) {
-            float width = getWidth();
-            float height = getHeight();
-            float pad = width * 0.065f;
-            float offset = height * 0.12f;
-
-            if (!sensorAvailable) {
-                paint.setColor(Color.rgb(255, 110, 110));
-                paint.setTextSize(width * 0.05f);
-                canvas.drawText("No magnetometer sensor found", pad, height * 0.48f, paint);
-                return;
-            }
-
-            float gaugeCx = width / 2f;
-            float gaugeCy = height * 0.36f;
-            float radius = width * 0.25f;
-            drawGauge(canvas, gaugeCx, gaugeCy, radius, Math.min(total / 200f, 1f), fieldColor(total),
-                    String.format(Locale.US, "%.1f", total), "µT", fieldLabel(total));
-
-            float cardTop = height * 0.57f;
-            float cardHeight = height * 0.115f;
-            float gap = width * 0.025f;
-            float cardWidth = (width - pad * 2 - gap * 2) / 3f;
-            drawMetricCard(canvas, pad, cardTop, cardWidth, cardHeight, "X", String.format(Locale.US, "%.1f", x), "µT");
-            drawMetricCard(canvas, pad + cardWidth + gap, cardTop, cardWidth, cardHeight, "Y", String.format(Locale.US, "%.1f", y), "µT");
-            drawMetricCard(canvas, pad + (cardWidth + gap) * 2, cardTop, cardWidth, cardHeight, "Z", String.format(Locale.US, "%.1f", z), "µT");
-
-            drawGraphCard(canvas, magneticHistory, pad, height * 0.72f, width - pad, height * 0.91f, false);
-            paint.setTextSize(width * 0.029f);
-            paint.setColor(Color.rgb(120, 140, 160));
-            canvas.drawText("Accuracy: " + accuracyLabel(accuracy), pad, height * 0.96f, paint);
+        private void drawMotion(Canvas c) {
+            float w=getWidth(), h=getHeight(), pad=w*.055f;
+            title(c,"MOTION & ENVIRONMENT","Live phone sensor values",h*.16f);
+            card(c,pad,h*.23f,w*.43f,h*.12f,"ACCELEROMETER",hasAccel?fmt3(ax,ay,az):"Unavailable","m/s²  X · Y · Z"); card(c,w*.515f,h*.23f,w*.43f,h*.12f,"GYROSCOPE",hasGyro?fmt3(gx,gy,gz):"Unavailable","rad/s  X · Y · Z");
+            card(c,pad,h*.39f,w*.43f,h*.12f,"AMBIENT LIGHT",hasLight?fmt(light):"Unavailable","lux"); card(c,w*.515f,h*.39f,w*.43f,h*.12f,"PROXIMITY",hasProx?fmt(proximity):"Unavailable","cm / sensor units");
+            card(c,pad,h*.55f,w*.43f,h*.12f,"PRESSURE",hasPressure?fmt(pressure):"Unavailable","hPa"); card(c,w*.515f,h*.55f,w*.43f,h*.12f,"SUPPORTED",supported()+" / 6","physical sensors");
+            p.setColor(Color.rgb(137,157,180)); p.setTextSize(w*.028f); c.drawText("Values depend on hardware installed by the phone manufacturer.",pad,h*.75f,p);
         }
 
-        private void drawSignals(Canvas canvas) {
-            float width = getWidth();
-            float height = getHeight();
-            float pad = width * 0.065f;
-            float gaugeCx = width / 2f;
-            float gaugeCy = height * 0.36f;
-            float radius = width * 0.25f;
-
-            float normalized = wifiConnected ? Math.max(0f, Math.min(1f, (wifiRssi + 100f) / 70f)) : 0f;
-            int color = signalColor(wifiRssi, wifiConnected);
-            String value = wifiConnected ? String.valueOf(wifiRssi) : "--";
-            String label = wifiConnected ? wifiLabel(wifiRssi) : "Wi-Fi not connected";
-            drawGauge(canvas, gaugeCx, gaugeCy, radius, normalized, color, value, "dBm", label);
-
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(width * 0.035f);
-            paint.setColor(Color.rgb(180, 198, 218));
-            canvas.drawText(ssid, gaugeCx, height * 0.535f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
-
-            float top = height * 0.58f;
-            float gap = width * 0.025f;
-            float cardW = (width - pad * 2 - gap) / 2f;
-            float cardH = height * 0.105f;
-            drawMetricCard(canvas, pad, top, cardW, cardH, "LINK SPEED", wifiConnected ? String.valueOf(linkSpeed) : "--", "Mbps");
-            drawMetricCard(canvas, pad + cardW + gap, top, cardW, cardH, "FREQUENCY", wifiConnected ? String.valueOf(frequency) : "--", "MHz");
-            drawMetricCard(canvas, pad, top + cardH + gap, cardW, cardH, "WI-FI QUALITY", wifiConnected ? qualityPercent(wifiRssi) + "%" : "--", "RSSI");
-            drawMetricCard(canvas, pad + cardW + gap, top + cardH + gap, cardW, cardH, "CELLULAR", cellLevel >= 0 ? (cellLevel + "/4") : "--", "signal level");
-
-            drawGraphCard(canvas, wifiHistory, pad, height * 0.82f, width - pad, height * 0.95f, true);
-
-            if (!permissionMessage.isEmpty()) {
-                paint.setTextSize(width * 0.026f);
-                paint.setColor(Color.rgb(255, 191, 71));
-                canvas.drawText(permissionMessage, pad, height * 0.985f, paint);
-            }
+        private void drawDevice(Canvas c) {
+            float w=getWidth(), h=getHeight(), pad=w*.055f;
+            title(c,"DEVICE LAB","Battery, storage and platform information",h*.16f);
+            card(c,pad,h*.23f,w*.43f,h*.12f,"BATTERY",batteryPercent>=0?batteryPercent+"%":"--",batteryTemp+" °C"); card(c,w*.515f,h*.23f,w*.43f,h*.12f,"VOLTAGE",String.format(Locale.US,"%.2f",batteryVoltage),"V");
+            card(c,pad,h*.39f,w*.43f,h*.12f,"FREE STORAGE",String.format(Locale.US,"%.1f",storageFreeGb),"GB"); card(c,w*.515f,h*.39f,w*.43f,h*.12f,"TOTAL STORAGE",String.format(Locale.US,"%.1f",storageTotalGb),"GB");
+            card(c,pad,h*.55f,w*.43f,h*.12f,"ANDROID",Build.VERSION.RELEASE,"API "+Build.VERSION.SDK_INT); card(c,w*.515f,h*.55f,w*.43f,h*.12f,"DEVICE",Build.MANUFACTURER,""+Build.MODEL);
+            card(c,pad,h*.71f,w*.89f,h*.10f,"BUILD","Sensor Laboratory 2.0","Direct values + Android-reported data");
         }
 
-        private void drawGauge(Canvas canvas, float cx, float cy, float radius, float normalized, int color,
-                               String value, String unit, String label) {
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(getWidth() * 0.032f);
-            paint.setColor(Color.rgb(26, 44, 63));
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setColor(color);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            canvas.drawArc(cx - radius, cy - radius, cx + radius, cy + radius, -90f, 360f * normalized, false, paint);
-            paint.setStrokeCap(Paint.Cap.BUTT);
-            paint.setStyle(Paint.Style.FILL);
-
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setColor(Color.WHITE);
-            paint.setFakeBoldText(true);
-            paint.setTextSize(getWidth() * 0.12f);
-            canvas.drawText(value, cx, cy + getWidth() * 0.02f, paint);
-            paint.setFakeBoldText(false);
-            paint.setTextSize(getWidth() * 0.036f);
-            paint.setColor(Color.rgb(160, 180, 202));
-            canvas.drawText(unit, cx, cy + getWidth() * 0.08f, paint);
-            paint.setTextSize(getWidth() * 0.035f);
-            paint.setColor(color);
-            canvas.drawText(label, cx, cy + radius + getWidth() * 0.065f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
+        private void drawBottom(Canvas c) {
+            float w=getWidth(),h=getHeight(); String[] labels={"MAGNETIC","RADIO","MOTION","DEVICE"};
+            for(int i=0;i<4;i++){float l=i*w/4f; p.setColor(i==page?Color.rgb(30,100,132):Color.rgb(12,27,44)); c.drawRect(l,h*.90f,l+w/4f,h,p); p.setTextAlign(Paint.Align.CENTER); p.setTextSize(w*.027f); p.setFakeBoldText(i==page); p.setColor(i==page?Color.WHITE:Color.rgb(137,157,180)); c.drawText(labels[i],l+w/8f,h*.955f,p);} p.setTextAlign(Paint.Align.LEFT);p.setFakeBoldText(false);
         }
 
-        private void drawMetricCard(Canvas canvas, float left, float top, float width, float height,
-                                    String title, String value, String unit) {
-            paint.setColor(Color.rgb(15, 31, 49));
-            canvas.drawRoundRect(left, top, left + width, top + height, 22f, 22f, paint);
-            paint.setColor(Color.rgb(135, 155, 177));
-            paint.setTextSize(getWidth() * 0.029f);
-            canvas.drawText(title, left + 18f, top + 30f, paint);
-            paint.setColor(Color.WHITE);
-            paint.setFakeBoldText(true);
-            paint.setTextSize(getWidth() * 0.041f);
-            canvas.drawText(value, left + 18f, top + height - 27f, paint);
-            paint.setFakeBoldText(false);
-            paint.setTextSize(getWidth() * 0.025f);
-            paint.setColor(Color.rgb(120, 140, 160));
-            float valueWidth = paint.measureText(value);
-            canvas.drawText(unit, left + 26f + valueWidth, top + height - 27f, paint);
-        }
-
-        private void drawGraphCard(Canvas canvas, Deque<Float> history, float left, float top, float right, float bottom, boolean wifi) {
-            paint.setColor(Color.rgb(15, 31, 49));
-            canvas.drawRoundRect(left, top, right, bottom, 24f, 24f, paint);
-            paint.setColor(Color.rgb(150, 168, 190));
-            paint.setTextSize(getWidth() * 0.031f);
-            canvas.drawText(wifi ? "Wi-Fi signal history" : "Live magnetic signal", left + 20f, top + 34f, paint);
-            if (history.size() < 2) return;
-
-            Path path = new Path();
-            int index = 0;
-            int count = history.size();
-            float graphTop = top + 48f;
-            float graphBottom = bottom - 16f;
-            for (float v : history) {
-                float px = left + 18f + (right - left - 36f) * index / (count - 1f);
-                float normalized = wifi ? Math.max(0f, Math.min(1f, (v + 100f) / 70f)) : Math.min(v / 200f, 1f);
-                float py = graphBottom - normalized * (graphBottom - graphTop);
-                if (index == 0) path.moveTo(px, py); else path.lineTo(px, py);
-                index++;
-            }
-            linePaint.setColor(wifi ? signalColor(wifiRssi, wifiConnected) : Color.rgb(71, 214, 180));
-            canvas.drawPath(path, linePaint);
-        }
-
-        private int qualityPercent(int rssi) {
-            return Math.max(0, Math.min(100, Math.round((rssi + 100f) * 100f / 70f)));
-        }
-
-        private int signalColor(int rssi, boolean connected) {
-            if (!connected) return Color.rgb(120, 140, 160);
-            if (rssi >= -60) return Color.rgb(71, 214, 180);
-            if (rssi >= -75) return Color.rgb(255, 191, 71);
-            return Color.rgb(255, 92, 92);
-        }
-
-        private String wifiLabel(int rssi) {
-            if (rssi >= -50) return "Excellent Wi-Fi signal";
-            if (rssi >= -60) return "Strong Wi-Fi signal";
-            if (rssi >= -70) return "Good Wi-Fi signal";
-            if (rssi >= -80) return "Weak Wi-Fi signal";
-            return "Very weak Wi-Fi signal";
-        }
-
-        private int fieldColor(float value) {
-            if (value < 70f) return Color.rgb(71, 214, 180);
-            if (value < 150f) return Color.rgb(255, 191, 71);
-            return Color.rgb(255, 92, 92);
-        }
-
-        private String fieldLabel(float value) {
-            if (value < 70f) return "Normal ambient field";
-            if (value < 150f) return "Elevated magnetic field";
-            return "Strong magnetic field";
-        }
-
-        private String accuracyLabel(int value) {
-            if (value == SensorManager.SENSOR_STATUS_ACCURACY_HIGH) return "High";
-            if (value == SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM) return "Medium";
-            if (value == SensorManager.SENSOR_STATUS_ACCURACY_LOW) return "Low — move phone in a figure-eight";
-            return "Unreliable — calibrate sensor";
-        }
+        private void title(Canvas c,String a,String b,float y){float w=getWidth();p.setColor(Color.WHITE);p.setFakeBoldText(true);p.setTextSize(w*.044f);c.drawText(a,w*.055f,y,p);p.setFakeBoldText(false);p.setColor(Color.rgb(137,157,180));p.setTextSize(w*.027f);c.drawText(b,w*.055f,y+w*.045f,p);}
+        private void gauge(Canvas c,float cx,float cy,float r,float n,String v,String unit,String label){float w=getWidth();p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(w*.03f);p.setColor(Color.rgb(25,43,62));c.drawCircle(cx,cy,r,p);p.setColor(n>.7f?Color.rgb(255,105,95):n>.4f?Color.rgb(255,190,80):Color.rgb(71,214,180));p.setStrokeCap(Paint.Cap.ROUND);c.drawArc(cx-r,cy-r,cx+r,cy+r,-90,360*n,false,p);p.setStrokeCap(Paint.Cap.BUTT);p.setStyle(Paint.Style.FILL);p.setTextAlign(Paint.Align.CENTER);p.setColor(Color.WHITE);p.setFakeBoldText(true);p.setTextSize(w*.115f);c.drawText(v,cx,cy+w*.02f,p);p.setFakeBoldText(false);p.setTextSize(w*.035f);p.setColor(Color.rgb(150,170,193));c.drawText(unit,cx,cy+w*.075f,p);p.setTextSize(w*.030f);p.setColor(Color.rgb(190,205,222));c.drawText(label,cx,cy+r+w*.055f,p);p.setTextAlign(Paint.Align.LEFT);}
+        private void card(Canvas c,float l,float t,float cw,float ch,String label,String value,String unit){p.setColor(Color.rgb(13,29,47));c.drawRoundRect(l,t,l+cw,t+ch,22,22,p);p.setColor(Color.rgb(130,151,176));p.setTextSize(getWidth()*.027f);c.drawText(label,l+18,t+30,p);p.setColor(Color.WHITE);p.setFakeBoldText(true);p.setTextSize(getWidth()*.038f);c.drawText(value,l+18,t+ch*.66f,p);p.setFakeBoldText(false);p.setColor(Color.rgb(130,151,176));p.setTextSize(getWidth()*.024f);c.drawText(unit,l+18,t+ch-15,p);}
+        private String fmt(float v){return String.format(Locale.US,"%.1f",v);} private String fmt3(float a,float b,float c){return String.format(Locale.US,"%.1f · %.1f · %.1f",a,b,c);} private int quality(){return Math.max(0,Math.min(100,2*(rssi+100)));} private String signalLabel(){return rssi>=-50?"Excellent":rssi>=-60?"Strong":rssi>=-70?"Good":rssi>=-80?"Weak":"Very weak";} private int supported(){int n=0;if(hasMag)n++;if(hasAccel)n++;if(hasGyro)n++;if(hasLight)n++;if(hasProx)n++;if(hasPressure)n++;return n;} private String accuracyLabel(){return accuracy==SensorManager.SENSOR_STATUS_ACCURACY_HIGH?"HIGH":accuracy==SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM?"MEDIUM":accuracy==SensorManager.SENSOR_STATUS_ACCURACY_LOW?"LOW":"CALIBRATE";}
     }
 }
