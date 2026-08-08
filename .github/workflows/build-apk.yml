@@ -23,32 +23,3 @@ jobs:
         with:
           name: inbox-agenda-apk
           path: app/build/outputs/apk/debug/app-debug.apk
-*** Add File: README.md
-# Inbox & Agenda
-
-A native Android dashboard combining a read-only Gmail inbox with upcoming Google Calendar events.
-
-## Features
-
-- Google account sign-in
-- Recent Gmail inbox feed
-- Seven-day Google Calendar agenda
-- Manual refresh
-- Background mail checks and Android notifications
-- Automatic debug APK builds in GitHub Actions
-
-## Required Google configuration
-
-Before sign-in works, create an Android OAuth client in Google Cloud Console:
-
-1. Enable the Gmail API and Google Calendar API.
-2. Configure the OAuth consent screen.
-3. Create an Android OAuth client for package `com.naappe.inboxagenda`.
-4. Add the SHA-1 fingerprint of the APK signing certificate.
-5. Add the Gmail read-only and Calendar read-only scopes to the consent screen.
-
-The app never stores a Google password and requests read-only access.
-
-## Download APK
-
-Open **Actions → Build Inbox Agenda APK → latest successful run → Artifacts → inbox-agenda-apk**.
