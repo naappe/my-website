@@ -1,40 +1,54 @@
-name: Build Android APK
+name: Build Inbox Agenda APK
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
-
-      - name: Install Android SDK 35
-        uses: android-actions/setup-android@v3
-
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
-
-      - name: Upload installable APK
-        uses: actions/upload-artifact@v4
+          gradle-version: '8.9'
+      - run: gradle assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
         with:
-          name: Magnetic-Field-Detector-APK
+          name: inbox-agenda-apk
           path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+*** Add File: README.md
+# Inbox & Agenda
+
+A native Android dashboard combining a read-only Gmail inbox with upcoming Google Calendar events.
+
+## Features
+
+- Google account sign-in
+- Recent Gmail inbox feed
+- Seven-day Google Calendar agenda
+- Manual refresh
+- Background mail checks and Android notifications
+- Automatic debug APK builds in GitHub Actions
+
+## Required Google configuration
+
+Before sign-in works, create an Android OAuth client in Google Cloud Console:
+
+1. Enable the Gmail API and Google Calendar API.
+2. Configure the OAuth consent screen.
+3. Create an Android OAuth client for package `com.naappe.inboxagenda`.
+4. Add the SHA-1 fingerprint of the APK signing certificate.
+5. Add the Gmail read-only and Calendar read-only scopes to the consent screen.
+
+The app never stores a Google password and requests read-only access.
+
+## Download APK
+
+Open **Actions → Build Inbox Agenda APK → latest successful run → Artifacts → inbox-agenda-apk**.
