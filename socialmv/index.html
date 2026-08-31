@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="dv" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SocialMV News Studio v3</title>
+<style>
+:root{
+  --accent:#e31b23;
+  --safe:56px;
+  --headline-size:68px;
+  --subline-size:23px;
+  --badge-size:22px;
+  --headline-gap:16px;
+  --photo-scale:1;
+  --photo-x:0px;
+  --photo-y:0px;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  background:#eef2f4;
+  font-family:"A_Waheed","MV Waheed","Faruma","MV Boli",Arial,sans-serif;
+}
+body,input,textarea,select,button{
+  font-family:"A_Waheed","MV Waheed","Faruma","MV Boli",Arial,sans-serif;
+}
+.app{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:380px minmax(0,1fr);
+  direction:ltr;
+}
+.controls{
+  direction:rtl;
+  height:100vh;
+  overflow:auto;
+  position:sticky;
+  top:0;
+  padding:20px;
+  background:#fff;
+  border-right:1px solid #dfe6ea;
+}
+.controls h1{
+  margin:0 0 7px;
+  font-size:22px;
+  color:#253944;
+}
+.controls p{
+  margin:0 0 15px;
+  font-size:13px;
+  line-height:1.7;
+  color:#74838c;
+}
+.home-link{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:8px 11px;border:1px solid #d7e0e4;border-radius:10px;text-decoration:none;color:#445762;font-size:12px;font-weight:700;direction:ltr}
+.home-link:hover{background:#f4f7f8}
+.group{
+  margin-top:15px;
+  padding-top:15px;
+  border-top:1px solid #e8edef;
+}
+.group h3{
+  margin:0 0 10px;
+  font-size:12px;
+  color:#73818a;
+}
+label{
+  display:block;
+  margin:9px 0 4px;
+  font-size:12px;
+  font-weight:700;
+  color:#445762;
+}
+input,textarea,select{
+  width:100%;
+  padding:10px 11px;
+  border:1px solid #d7e0e4;
+  border-radius:12px;
+  background:#fbfcfc;
+  color:#263942;
+  font:inherit;
+  text-align:right;
+}
+textarea{min-height:76px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:16px;
+}
+button{
+  border:0;
+  border-radius:12px;
+  padding:11px 12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.soft{background:#edf3f5;color:#35505f}
+.accent{background:#fde8e9;color:#8f171b}
+.toggle-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:8px;
+  padding:10px 12px;
+  border:1px solid #d7e0e4;
+  border-radius:12px;
+  background:#fbfcfc;
+}
+.toggle-row input[type="checkbox"]{width:18px;height:18px}
+.hint,.counter{
+  margin-top:8px;
+  color:#60727c;
+  font-size:12px;
+  line-height:1.55;
+}
+.counter.warn{color:#b74b4f;font-weight:800}
+.stage{
+  padding:26px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  overflow:auto;
+  direction:ltr;
+}
+.scale{transform-origin:top center}
+
+/* POSTER */
+.poster{
+  width:1080px;
+  height:1350px;
+  position:relative;
+  overflow:hidden;
+  border-radius:30px;
+  background:#111;
+  box-shadow:0 22px 58px rgba(35,55,66,.15);
+}
+.photo{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  background:#d8e2e6;
+}
+.photo img{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  transform:
+    translate(calc(-50% + var(--photo-x)),calc(-50% + var(--photo-y)))
+    scale(var(--photo-scale));
+  transform-origin:center center;
+}
+.placeholder{
+  position:absolute;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#d8e2e6,#edf3f5);
+  color:#607680;
+  font-size:30px;
+  font-weight:800;
+}
+.poster::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 43%,
+      rgba(0,0,0,.14) 58%,
+      rgba(0,0,0,.55) 76%,
+      rgba(0,0,0,.88) 100%
+    );
+}
+
+/* SAFE GUIDES */
+.safe-guides{
+  position:absolute;
+  z-index:10;
+  inset:var(--safe);
+  border:2px dashed rgba(255,255,255,.35);
+  border-radius:12px;
+  pointer-events:none;
+  display:none;
+}
+.safe-guides.show{display:block}
+
+/* BRAND */
+.brand{
+  position:absolute;
+  z-index:4;
+  top:42px;
+  right:var(--safe);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:#fff;
+  text-shadow:0 2px 12px rgba(0,0,0,.35);
+}
+.brand.hidden{display:none}
+.brand-icon{
+  width:54px;
+  height:37px;
+  border:3px solid currentColor;
+  border-radius:12px;
+  position:relative;
+}
+.brand-icon::before{
+  content:"•••";
+  position:absolute;
+  left:9px;
+  top:6px;
+  font-family:Arial,sans-serif;
+  font-size:12px;
+  letter-spacing:3px;
+}
+.brand-icon::after{
+  content:"";
+  position:absolute;
+  left:8px;
+  bottom:-8px;
+  width:14px;
+  height:14px;
+  border-left:3px solid currentColor;
+  transform:skewX(-30deg);
+}
+.brand-name{
+  font-family:"Segoe UI",Arial,sans-serif !important;
+  font-size:34px;
+  font-weight:800;
+  letter-spacing:-1px;
+}
+.brand-logo{
+  max-width:220px;
+  max-height:72px;
+  object-fit:contain;
+  display:none;
+}
+.brand.use-image .brand-icon,
+.brand.use-image .brand-name{display:none}
+.brand.use-image .brand-logo{display:block}
+
+/* CONTENT */
+.content{
+  position:absolute;
+  z-index:4;
+  left:var(--safe);
+  right:var(--safe);
+  bottom:74px;
+  color:#fff;
+  text-align:right;
+}
+.badge{
+  display:inline-block;
+  margin-bottom:18px;
+  padding:10px 18px 11px;
+  background:var(--accent);
+  color:#fff;
+  border-radius:3px;
+  font-family:"Segoe UI",Arial,sans-serif !important;
+  font-size:var(--badge-size);
+  font-weight:900;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+}
+.badge.hidden{display:none}
+.headline{
+  margin:0;
+  width:min(100%, 940px);
+  max-height:315px;
+  overflow:hidden;
+  color:#fff;
+  font-family:"MV Waheed","A_Waheed","Faruma",sans-serif !important;
+  font-size:var(--headline-size);
+  line-height:1.12;
+  font-weight:700;
+  text-align:right;
+  text-shadow:0 3px 16px rgba(0,0,0,.55);
+}
+.subline{
+  margin-top:var(--headline-gap);
+  width:min(100%, 900px);
+  color:#e8ecef;
+  font-family:"A_Waheed","MV Waheed","Faruma",sans-serif !important;
+  font-size:var(--subline-size);
+  line-height:1.5;
+  text-align:right;
+  text-shadow:0 2px 12px rgba(0,0,0,.45);
+}
+.subline.hidden{display:none}
+.quote-line{
+  margin-top:14px;
+  padding-right:14px;
+  border-right:4px solid var(--accent);
+  color:#fff;
+  font-family:"A_Waheed","MV Waheed","Faruma",sans-serif !important;
+  font-size:20px;
+  line-height:1.45;
+  text-align:right;
+  display:none;
+}
+.quote-line.show{display:block}
+.meta{
+  margin-top:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  direction:ltr;
+}
+.meta-left,.meta-right{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.source,.date,.location{
+  color:#d6dce0;
+  font-family:"Segoe UI",Arial,sans-serif !important;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:.03em;
+}
+.location.hidden,.date.hidden{display:none}
+.bottom-icon{
+  width:54px;
+  height:54px;
+  border-radius:10px;
+  background:rgba(255,255,255,.12);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  backdrop-filter:blur(4px);
+}
+.bottom-icon.hidden{display:none}
+.bottom-icon svg{width:34px;height:34px}
+
+/* EDIT / MOVE */
+[data-edit]:focus{
+  outline:2px dashed rgba(255,255,255,.75);
+  outline-offset:3px;
+  border-radius:4px;
+}
+.move-mode [data-edit]{
+  cursor:move !important;
+  user-select:none;
+  touch-action:none;
+  outline:1px dashed rgba(255,255,255,.35);
+  outline-offset:3px;
+}
+
+@media(max-width:1240px){.scale{transform:scale(.72)}}
+@media(max-width:860px){
+  .app{display:block}
+  .controls{position:relative;height:auto;border-right:0}
+  .stage{padding:12px;justify-content:flex-start}
+  .scale{transform:scale(.45);transform-origin:top left;height:620px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="controls">
+  <a class="home-link" href="../">← Home</a>
+  <h1>SocialMV News Studio v3</h1>
+  <p>މި ވެރޝަންގައި ފޮޓޯ ޒޫމް/ޕޮޒިޝަން، ހެޑްލައިން އޮޓޯ-ފިޓް، ޕޯސްޓް ޓައިޕް ޕްރީސެޓް، ލޯގޯ އަޕްލޯޑް، އަލައިންމަންޓް/ސްޕޭސިންގް ކޮންޓްރޯލް އަދި ސޭފް ގައިޑްސް އެބަހުރި.</p>
+
+  <div class="group">
+    <h3>ޕޯސްޓް ޓައިޕް</h3>
+    <label>ޕްރީސެޓް</label>
+    <select id="postType">
+      <option value="breaking">Breaking</option>
+      <option value="news">News</option>
+      <option value="update">Update</option>
+      <option value="notice">Notice</option>
+      <option value="statement">Statement</option>
+      <option value="quote">Quote</option>
+    </select>
+    <div class="hint">ޕްރީސެޓް ބަދަލު ކުރުމުން ބެޖް ނަން/ކުލަ އަދި ކޯޓް މޯޑް އޮޓޯ ބަދަލުވާނެ.</div>
+  </div>
+
+  <div class="group">
+    <h3>ފޮޓޯ</h3>
+    <label>މައި ފޮޓޯ</label>
+    <input id="photoInput" type="file" accept="image/*">
+    <label>ޒޫމް</label>
+    <input id="photoZoom" type="range" min="1" max="2.4" step="0.02" value="1">
+    <div class="row">
+      <div>
+        <label>X</label>
+        <input id="photoX" type="range" min="-220" max="220" step="2" value="0">
+      </div>
+      <div>
+        <label>Y</label>
+        <input id="photoY" type="range" min="-220" max="220" step="2" value="0">
+      </div>
+    </div>
+    <button class="soft" id="resetPhotoPos" style="width:100%;margin-top:8px">ފޮޓޯ ރީސެޓް</button>
+  </div>
+
+  <div class="group">
+    <h3>ޓެކްސްޓް</h3>
+    <label>ބެޖް / ކެޓެގަރީ</label>
+    <input data-bind="badge" value="BREAKING" dir="ltr">
+    <div class="toggle-row">
+      <span>ބެޖް ފެންނަން</span>
+      <input id="showBadge" type="checkbox" checked>
+    </div>
+
+    <label>ހެޑްލައިން</label>
+    <textarea id="headlineInput" data-bind="headline">މިތަނަށް ބޮޑު ދިވެހި ހެޑްލައިން ލިޔުއްވާ</textarea>
+    <div id="headlineCount" class="counter">0 / 95</div>
+    <div class="toggle-row">
+      <span>ހެޑްލައިން އޮޓޯ-ފިޓް</span>
+      <input id="autoFitHeadline" type="checkbox" checked>
+    </div>
+
+    <label>ސަބް ލައިން</label>
+    <textarea id="sublineInput" data-bind="subline">ބޭނުންނަމަ ކުރު ސަބް ލައިނެއް މިތަނަށް ލިޔުއްވާ.</textarea>
+    <div id="sublineCount" class="counter">0 / 140</div>
+    <div class="toggle-row">
+      <span>ސަބް ލައިން ފެންނަން</span>
+      <input id="showSubline" type="checkbox" checked>
+    </div>
+
+    <label>ކޯޓް / ހައިލައިޓް</label>
+    <textarea data-bind="quote">ކުރު ކޯޓެއް ނުވަތަ ހައިލައިޓް މިތަނަށް.</textarea>
+    <div class="toggle-row">
+      <span>ކޯޓް ފެންނަން</span>
+      <input id="showQuote" type="checkbox">
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>ލޯގޯ / ބްރޭންޑް</h3>
+    <label>ލޯގޯ ނަން</label>
+    <input data-bind="brand" value="SocialMV" dir="ltr">
+    <label>ރިއަލް ލޯގޯ އަޕްލޯޑް</label>
+    <input id="logoInput" type="file" accept="image/*">
+    <div class="toggle-row">
+      <span>އަޕްލޯޑް ކޮށްފައިވާ ލޯގޯ ބޭނުން</span>
+      <input id="useLogoImage" type="checkbox">
+    </div>
+    <div class="toggle-row">
+      <span>މަތީ ބްރޭންޑް ފެންނަން</span>
+      <input id="showTopBrand" type="checkbox" checked>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>އަލައިންމަންޓް / ސްޕޭސިންގް</h3>
+    <label>ހެޑްލައިން އަލައިން</label>
+    <select id="headlineAlign">
+      <option value="right">Right</option>
+      <option value="center">Center</option>
+      <option value="left">Left</option>
+    </select>
+    <label>ސަބްލައިން އަލައިން</label>
+    <select id="sublineAlign">
+      <option value="right">Right</option>
+      <option value="center">Center</option>
+      <option value="left">Left</option>
+    </select>
+    <label>ހެޑްލައިން → ސަބްލައިން ގޭޕް</label>
+    <input id="headlineGap" type="range" min="4" max="48" step="1" value="16">
+    <label>ސޭފް މާޖިން</label>
+    <input id="safeMargin" type="range" min="30" max="100" step="2" value="56">
+    <div class="toggle-row">
+      <span>ސޭފް ގައިޑްސް ފެންނަން</span>
+      <input id="showGuides" type="checkbox">
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>މެޓާ</h3>
+    <label>ސޯސް</label>
+    <input data-bind="source" value="SOCIALMV" dir="ltr">
+    <label>ތާރީޚު</label>
+    <input data-bind="date" value="28 AUG 2026" dir="ltr">
+    <div class="toggle-row">
+      <span>ތާރީޚު ފެންނަން</span>
+      <input id="showDate" type="checkbox" checked>
+    </div>
+    <label>ލޮކޭޝަން</label>
+    <input data-bind="location" value="Malé" dir="ltr">
+    <div class="toggle-row">
+      <span>ލޮކޭޝަން ފެންނަން</span>
+      <input id="showLocation" type="checkbox">
+    </div>
+    <div class="toggle-row">
+      <span>ތިރީ އައިކަން ފެންނަން</span>
+      <input id="showBottomIcon" type="checkbox" checked>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>ފޮންޓް ސައިޒް</h3>
+    <label>ޓެކްސްޓް ސެލެކްޓް</label>
+    <select id="fontTarget">
+      <option value="headline">ހެޑްލައިން</option>
+      <option value="subline">ސަބް ލައިން</option>
+      <option value="badge">ބެޖް</option>
+      <option value="brand">SocialMV</option>
+      <option value="source">ސޯސް</option>
+      <option value="date">ތާރީޚު</option>
+      <option value="location">ލޮކޭޝަން</option>
+      <option value="quote">ކޯޓް</option>
+    </select>
+    <label>ސައިޒް</label>
+    <input id="fontSizeRange" type="range" min="12" max="120" value="68">
+    <div class="row">
+      <div>
+        <label>px</label>
+        <input id="fontSizeNumber" type="number" min="12" max="120" value="68" dir="ltr">
+      </div>
+      <div>
+        <label>ރީސެޓް</label>
+        <button class="soft" id="resetFontBtn" style="width:100%">ޑިފޯލްޓް</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>ޓެކްސްޓް މޫވް</h3>
+    <button class="accent" id="moveBtn" style="width:100%">މޫވް މޯޑް: OFF</button>
+    <button class="soft" id="resetPositionsBtn" style="width:100%;margin-top:8px">ޕޮޒިޝަން ރީސެޓް</button>
+    <div class="hint">މޫވް މޯޑް ON ކޮށް ޓެކްސްޓް ދަމާފައި ބޭނުން ތަނަކަށް ގެންދެވޭނެ.</div>
+  </div>
+
+  <div class="group">
+    <h3>ބެޖް ކުލަ</h3>
+    <input id="accentPicker" type="color" value="#e31b23">
+  </div>
+
+  <div class="actions">
+    <button class="soft" id="saveBtn">ސޭވް</button>
+    <button class="soft" id="loadBtn">ލޯޑް</button>
+    <button class="soft" id="resetBtn">ރީސެޓް</button>
+    <button class="accent" id="downloadBtn">PNG ޑައުންލޯޑް</button>
+  </div>
+</aside>
+
+<main class="stage">
+<div class="scale">
+<section class="poster" id="poster">
+  <div class="photo">
+    <img id="mainImg" alt="" style="display:none">
+    <div class="placeholder" id="photoPlaceholder">ފޮޓޯ އަޕްލޯޑް ކުރައްވާ</div>
+  </div>
+
+  <div class="safe-guides" id="safeGuides"></div>
+
+  <div class="brand" id="topBrand">
+    <div class="brand-icon"></div>
+    <div class="brand-name" data-edit="brand" contenteditable="true">SocialMV</div>
+    <img class="brand-logo" id="brandLogo" alt="">
+  </div>
+
+  <div class="content">
+    <div class="badge" id="badgeEl" data-edit="badge" contenteditable="true">BREAKING</div>
+    <h1 class="headline" id="headlineEl" data-edit="headline" contenteditable="true">މިތަނަށް ބޮޑު ދިވެހި ހެޑްލައިން ލިޔުއްވާ</h1>
+    <div class="subline" id="sublineEl" data-edit="subline" contenteditable="true">ބޭނުންނަމަ ކުރު ސަބް ލައިނެއް މިތަނަށް ލިޔުއްވާ.</div>
+    <div class="quote-line" id="quoteEl" data-edit="quote" contenteditable="true">ކުރު ކޯޓެއް ނުވަތަ ހައިލައިޓް މިތަނަށް.</div>
+
+    <div class="meta">
+      <div class="meta-left">
+        <div class="source" data-edit="source" contenteditable="true">SOCIALMV</div>
+      </div>
+      <div class="meta-right">
+        <div class="location hidden" id="locationEl" data-edit="location" contenteditable="true">Malé</div>
+        <div class="date" id="dateEl" data-edit="date" contenteditable="true">28 AUG 2026</div>
+        <div class="bottom-icon" id="bottomIcon">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 42l12-12"/>
+              <path d="M34 26l12-12"/>
+              <path d="M15 45c-5-5-5-13 0-18l7-7"/>
+              <path d="M49 19c5 5 5 13 0 18l-7 7"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+function syncInput(i){
+  const t=document.querySelector(`[data-edit="${i.dataset.bind}"]`);
+  if(t)t.innerText=i.value;
+}
+$$('[data-bind]').forEach(i=>i.addEventListener('input',()=>{
+  syncInput(i);
+  if(i.dataset.bind==='headline') updateHeadlineCounter();
+  if(i.dataset.bind==='subline') updateSublineCounter();
+  if($('#autoFitHeadline').checked && i.dataset.bind==='headline') fitHeadline();
+}));
+$$('[data-edit]').forEach(el=>el.addEventListener('input',()=>{
+  const i=document.querySelector(`[data-bind="${el.dataset.edit}"]`);
+  if(i)i.value=el.innerText;
+}));
+
+/* IMAGE */
+$('#photoInput').addEventListener('change',e=>{
+  const f=e.target.files?.[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    $('#mainImg').src=r.result;
+    $('#mainImg').style.display='block';
+    $('#photoPlaceholder').style.display='none';
+    localStorage.setItem('socialmvV3Photo',r.result);
+  };
+  r.readAsDataURL(f);
+});
+function restorePhoto(){
+  const d=localStorage.getItem('socialmvV3Photo');
+  if(d){
+    $('#mainImg').src=d;
+    $('#mainImg').style.display='block';
+    $('#photoPlaceholder').style.display='none';
+  }
+}
+function applyPhotoTransform(){
+  document.documentElement.style.setProperty('--photo-scale',$('#photoZoom').value);
+  document.documentElement.style.setProperty('--photo-x',$('#photoX').value+'px');
+  document.documentElement.style.setProperty('--photo-y',$('#photoY').value+'px');
+}
+['photoZoom','photoX','photoY'].forEach(id=>$('#'+id).addEventListener('input',applyPhotoTransform));
+$('#resetPhotoPos').onclick=()=>{
+  $('#photoZoom').value=1;$('#photoX').value=0;$('#photoY').value=0;applyPhotoTransform();
+};
+
+/* LOGO */
+$('#logoInput').addEventListener('change',e=>{
+  const f=e.target.files?.[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    $('#brandLogo').src=r.result;
+    localStorage.setItem('socialmvV3Logo',r.result);
+    $('#useLogoImage').checked=true;
+    applyLogoMode();
+  };
+  r.readAsDataURL(f);
+});
+function restoreLogo(){
+  const d=localStorage.getItem('socialmvV3Logo');
+  if(d)$('#brandLogo').src=d;
+}
+function applyLogoMode(){
+  $('#topBrand').classList.toggle('use-image',$('#useLogoImage').checked && !!$('#brandLogo').src);
+}
+$('#useLogoImage').addEventListener('change',applyLogoMode);
+
+/* PRESETS */
+const presets={
+  breaking:{label:'BREAKING',color:'#e31b23',showBadge:true,quote:false},
+  news:{label:'NEWS',color:'#245b7a',showBadge:true,quote:false},
+  update:{label:'UPDATE',color:'#2f7a5f',showBadge:true,quote:false},
+  notice:{label:'NOTICE',color:'#b38324',showBadge:true,quote:false},
+  statement:{label:'STATEMENT',color:'#5f527f',showBadge:true,quote:true},
+  quote:{label:'QUOTE',color:'#0b6e73',showBadge:false,quote:true}
+};
+function applyPreset(){
+  const p=presets[$('#postType').value];
+  if(!p)return;
+  $('[data-bind="badge"]').value=p.label;
+  $('#badgeEl').innerText=p.label;
+  $('#showBadge').checked=p.showBadge;
+  $('#showQuote').checked=p.quote;
+  $('#accentPicker').value=p.color;
+  document.documentElement.style.setProperty('--accent',p.color);
+  applyVisibility();
+}
+$('#postType').addEventListener('change',applyPreset);
+
+/* VISIBILITY */
+function applyVisibility(){
+  $('#badgeEl').classList.toggle('hidden',!$('#showBadge').checked || !$('#badgeEl').innerText.trim());
+  $('#sublineEl').classList.toggle('hidden',!$('#showSubline').checked || !$('#sublineEl').innerText.trim());
+  $('#topBrand').classList.toggle('hidden',!$('#showTopBrand').checked);
+  $('#bottomIcon').classList.toggle('hidden',!$('#showBottomIcon').checked);
+  $('#dateEl').classList.toggle('hidden',!$('#showDate').checked);
+  $('#locationEl').classList.toggle('hidden',!$('#showLocation').checked);
+  $('#quoteEl').classList.toggle('show',$('#showQuote').checked && !!$('#quoteEl').innerText.trim());
+}
+['showBadge','showSubline','showTopBrand','showBottomIcon','showDate','showLocation','showQuote']
+  .forEach(id=>$('#'+id).addEventListener('change',applyVisibility));
+
+/* ALIGN / SPACING */
+function applyLayoutControls(){
+  $('#headlineEl').style.textAlign=$('#headlineAlign').value;
+  $('#sublineEl').style.textAlign=$('#sublineAlign').value;
+  document.documentElement.style.setProperty('--headline-gap',$('#headlineGap').value+'px');
+  document.documentElement.style.setProperty('--safe',$('#safeMargin').value+'px');
+  $('#safeGuides').classList.toggle('show',$('#showGuides').checked);
+}
+['headlineAlign','sublineAlign','headlineGap','safeMargin','showGuides']
+  .forEach(id=>$('#'+id).addEventListener('input',applyLayoutControls));
+
+/* COUNTERS */
+function updateHeadlineCounter(){
+  const n=$('#headlineInput').value.length;
+  $('#headlineCount').textContent=n+' / 95';
+  $('#headlineCount').classList.toggle('warn',n>95);
+}
+function updateSublineCounter(){
+  const n=$('#sublineInput').value.length;
+  $('#sublineCount').textContent=n+' / 140';
+  $('#sublineCount').classList.toggle('warn',n>140);
+}
+
+/* AUTO FIT */
+function fitHeadline(){
+  if(!$('#autoFitHeadline').checked)return;
+  const el=$('#headlineEl');
+  let size=68;
+  el.style.fontSize=size+'px';
+  while((el.scrollHeight>315 || el.scrollWidth>el.clientWidth) && size>34){
+    size-=2;
+    el.style.fontSize=size+'px';
+  }
+  el.dataset.fontSize=size;
+  if($('#fontTarget').value==='headline'){
+    $('#fontSizeRange').value=size;
+    $('#fontSizeNumber').value=size;
+  }
+}
+
+/* FONT SIZE */
+const defaultSizes={headline:68,subline:23,badge:22,brand:34,source:15,date:15,location:15,quote:20};
+function targetEl(){return document.querySelector(`[data-edit="${$('#fontTarget').value}"]`)}
+function currentSize(k){
+  const el=document.querySelector(`[data-edit="${k}"]`);
+  return parseFloat(el?.style.fontSize)||parseFloat(getComputedStyle(el).fontSize)||defaultSizes[k]||20;
+}
+function syncFontControls(){
+  const k=$('#fontTarget').value,s=Math.round(currentSize(k));
+  $('#fontSizeRange').value=s;
+  $('#fontSizeNumber').value=s;
+}
+function setFontSize(v){
+  const k=$('#fontTarget').value,el=targetEl();
+  if(!el)return;
+  const s=Math.max(12,Math.min(120,Number(v)||defaultSizes[k]||20));
+  el.style.fontSize=s+'px';
+  el.dataset.fontSize=s;
+  $('#fontSizeRange').value=s;
+  $('#fontSizeNumber').value=s;
+  saveFontSizes();
+}
+function saveFontSizes(){
+  const d={};
+  Object.keys(defaultSizes).forEach(k=>{
+    const el=document.querySelector(`[data-edit="${k}"]`);
+    if(el)d[k]=parseFloat(el.dataset.fontSize||el.style.fontSize)||currentSize(k);
+  });
+  localStorage.setItem('socialmvV3FontSizes',JSON.stringify(d));
+}
+function restoreFontSizes(){
+  try{
+    const d=JSON.parse(localStorage.getItem('socialmvV3FontSizes')||'{}');
+    Object.entries(d).forEach(([k,s])=>{
+      const el=document.querySelector(`[data-edit="${k}"]`);
+      if(el){el.style.fontSize=s+'px';el.dataset.fontSize=s;}
+    });
+  }catch(e){}
+  syncFontControls();
+}
+$('#fontTarget').addEventListener('change',syncFontControls);
+$('#fontSizeRange').addEventListener('input',e=>setFontSize(e.target.value));
+$('#fontSizeNumber').addEventListener('input',e=>setFontSize(e.target.value));
+$('#resetFontBtn').onclick=()=>setFontSize(defaultSizes[$('#fontTarget').value]||20);
+
+/* FREE MOVE */
+let moveMode=false;
+function applyPos(el,x,y){
+  el.dataset.x=x;el.dataset.y=y;
+  el.style.transform=`translate(${x}px,${y}px)`;
+}
+function savePositions(){
+  const d={};
+  $$('[data-edit]').forEach(el=>d[el.dataset.edit]={x:+(el.dataset.x||0),y:+(el.dataset.y||0)});
+  localStorage.setItem('socialmvV3Positions',JSON.stringify(d));
+}
+function restorePositions(){
+  try{
+    const d=JSON.parse(localStorage.getItem('socialmvV3Positions')||'{}');
+    $$('[data-edit]').forEach(el=>{
+      const p=d[el.dataset.edit];
+      if(p)applyPos(el,p.x||0,p.y||0);
+    });
+  }catch(e){}
+}
+function setMoveMode(on){
+  moveMode=on;
+  $('#poster').classList.toggle('move-mode',on);
+  $('#moveBtn').textContent=on?'މޫވް މޯޑް: ON':'މޫވް މޯޑް: OFF';
+  $$('[data-edit]').forEach(el=>el.contentEditable=on?'false':'true');
+}
+$('#moveBtn').onclick=()=>setMoveMode(!moveMode);
+$('#resetPositionsBtn').onclick=()=>{
+  $$('[data-edit]').forEach(el=>applyPos(el,0,0));
+  localStorage.removeItem('socialmvV3Positions');
+};
+$$('[data-edit]').forEach(el=>{
+  el.addEventListener('pointerdown',e=>{
+    if(!moveMode)return;
+    e.preventDefault();
+    const sx=e.clientX,sy=e.clientY,ox=+(el.dataset.x||0),oy=+(el.dataset.y||0);
+    el.setPointerCapture?.(e.pointerId);
+    const mv=ev=>applyPos(el,ox+(ev.clientX-sx),oy+(ev.clientY-sy));
+    const up=ev=>{
+      el.releasePointerCapture?.(ev.pointerId);
+      el.removeEventListener('pointermove',mv);
+      el.removeEventListener('pointerup',up);
+      el.removeEventListener('pointercancel',up);
+      savePositions();
+    };
+    el.addEventListener('pointermove',mv);
+    el.addEventListener('pointerup',up);
+    el.addEventListener('pointercancel',up);
+  });
+});
+
+/* COLOR */
+$('#accentPicker').addEventListener('input',e=>{
+  document.documentElement.style.setProperty('--accent',e.target.value);
+});
+
+/* SAVE / LOAD */
+function collect(){
+  const d={};
+  $$('[data-bind]').forEach(i=>d[i.dataset.bind]=i.value);
+  [
+    'postType','showBadge','autoFitHeadline','showSubline','showQuote','useLogoImage','showTopBrand',
+    'headlineAlign','sublineAlign','showGuides','showDate','showLocation','showBottomIcon'
+  ].forEach(id=>{
+    const el=$('#'+id);
+    d[id]=el.type==='checkbox'?el.checked:el.value;
+  });
+  ['photoZoom','photoX','photoY','headlineGap','safeMargin'].forEach(id=>d[id]=$('#'+id).value);
+  d.accent=$('#accentPicker').value;
+  return d;
+}
+function apply(d){
+  if(!d)return;
+  $$('[data-bind]').forEach(i=>{
+    if(d[i.dataset.bind]!==undefined){i.value=d[i.dataset.bind];syncInput(i);}
+  });
+  [
+    'postType','headlineAlign','sublineAlign'
+  ].forEach(id=>{if(d[id]!==undefined)$('#'+id).value=d[id];});
+  [
+    'showBadge','autoFitHeadline','showSubline','showQuote','useLogoImage','showTopBrand',
+    'showGuides','showDate','showLocation','showBottomIcon'
+  ].forEach(id=>{if(typeof d[id]==='boolean')$('#'+id).checked=d[id];});
+  ['photoZoom','photoX','photoY','headlineGap','safeMargin'].forEach(id=>{
+    if(d[id]!==undefined)$('#'+id).value=d[id];
+  });
+  if(d.accent){
+    $('#accentPicker').value=d.accent;
+    document.documentElement.style.setProperty('--accent',d.accent);
+  }
+  applyPhotoTransform();
+  applyLayoutControls();
+  applyLogoMode();
+  applyVisibility();
+  updateHeadlineCounter();
+  updateSublineCounter();
+  if($('#autoFitHeadline').checked)fitHeadline();
+}
+$('#saveBtn').onclick=()=>{
+  localStorage.setItem('socialmvV3Data',JSON.stringify(collect()));
+  savePositions();saveFontSizes();
+  alert('ސޭވް ކުރެވިއްޖެ.');
+};
+$('#loadBtn').onclick=()=>{
+  const d=localStorage.getItem('socialmvV3Data');
+  if(d)apply(JSON.parse(d));
+  restorePhoto();restoreLogo();restorePositions();restoreFontSizes();
+  applyLogoMode();applyVisibility();
+};
+$('#resetBtn').onclick=()=>{
+  if(!confirm('ރީސެޓް ކުރަންވީތޯ؟'))return;
+  ['socialmvV3Data','socialmvV3Photo','socialmvV3Logo','socialmvV3Positions','socialmvV3FontSizes'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+};
+$('#downloadBtn').onclick=async()=>{
+  const b=$('#downloadBtn');b.textContent='ރެންޑަރިންގ...';b.disabled=true;
+  const guidesWas=$('#safeGuides').classList.contains('show');
+  $('#safeGuides').classList.remove('show');
+  try{
+    const canvas=await html2canvas($('#poster'),{scale:2,useCORS:true,backgroundColor:null,logging:false});
+    const a=document.createElement('a');
+    a.download='socialmv-news-studio-v3.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }catch(e){
+    alert('PNG ހެދުމުގައި މައްސަލައެއް ދިމާވެއްޖެ.');
+  }finally{
+    if(guidesWas)$('#safeGuides').classList.add('show');
+    b.textContent='PNG ޑައުންލޯޑް';b.disabled=false;
+  }
+};
+
+/* INIT */
+try{
+  const d=JSON.parse(localStorage.getItem('socialmvV3Data')||'null');
+  if(d)apply(d);
+}catch(e){}
+restorePhoto();
+restoreLogo();
+restorePositions();
+restoreFontSizes();
+applyPhotoTransform();
+applyLayoutControls();
+applyLogoMode();
+applyVisibility();
+updateHeadlineCounter();
+updateSublineCounter();
+setMoveMode(false);
+if($('#autoFitHeadline').checked)fitHeadline();
+</script>
+</body>
+</html>
