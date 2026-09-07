@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SocialMV News Studio v3</title>
+<title>SocialMV News Studio v3.1</title>
 <style>
 :root{
   --accent:#e31b23;
@@ -15,6 +15,7 @@
   --photo-scale:1;
   --photo-x:0px;
   --photo-y:0px;
+  --photo-flip:1;
 }
 *{box-sizing:border-box}
 html,body{
@@ -25,6 +26,31 @@ html,body{
 body,input,textarea,select,button{
   font-family:"A_Waheed","MV Waheed","Faruma","MV Boli",Arial,sans-serif;
 }
+.controls,
+.controls label,
+.controls h1,
+.controls h3,
+.controls p,
+.controls .hint,
+.controls .toggle-row,
+.controls button,
+.controls select,
+.controls input{
+  font-family:"Segoe UI",Arial,sans-serif;
+  direction:ltr;
+  text-align:left;
+}
+.controls #headlineInput,
+.controls #sublineInput,
+.controls textarea[data-bind="quote"]{
+  font-family:"MV Waheed","A_Waheed","Faruma","MV Boli",sans-serif;
+  direction:rtl;
+  text-align:right;
+  line-height:1.55;
+  letter-spacing:.015em;
+  word-spacing:.08em;
+}
+
 .app{
   min-height:100vh;
   display:grid;
@@ -153,7 +179,8 @@ button{
   display:block;
   transform:
     translate(calc(-50% + var(--photo-x)),calc(-50% + var(--photo-y)))
-    scale(var(--photo-scale));
+    scale(var(--photo-scale))
+    scaleX(var(--photo-flip));
   transform-origin:center center;
 }
 .placeholder{
@@ -282,8 +309,11 @@ button{
   color:#fff;
   font-family:"MV Waheed","A_Waheed","Faruma",sans-serif !important;
   font-size:var(--headline-size);
-  line-height:1.12;
-  font-weight:700;
+  line-height:1.22;
+  font-weight:500;
+  letter-spacing:.018em;
+  word-spacing:.10em;
+  font-kerning:none;
   text-align:right;
   text-shadow:0 3px 16px rgba(0,0,0,.55);
 }
@@ -293,7 +323,10 @@ button{
   color:#e8ecef;
   font-family:"A_Waheed","MV Waheed","Faruma",sans-serif !important;
   font-size:var(--subline-size);
-  line-height:1.5;
+  line-height:1.62;
+  letter-spacing:.012em;
+  word-spacing:.08em;
+  font-kerning:none;
   text-align:right;
   text-shadow:0 2px 12px rgba(0,0,0,.45);
 }
@@ -305,7 +338,10 @@ button{
   color:#fff;
   font-family:"A_Waheed","MV Waheed","Faruma",sans-serif !important;
   font-size:20px;
-  line-height:1.45;
+  line-height:1.58;
+  letter-spacing:.012em;
+  word-spacing:.08em;
+  font-kerning:none;
   text-align:right;
   display:none;
 }
@@ -351,12 +387,13 @@ button{
   border-radius:4px;
 }
 .move-mode [data-edit]{
-  cursor:move !important;
+  cursor:grab !important;
   user-select:none;
   touch-action:none;
-  outline:1px dashed rgba(255,255,255,.35);
-  outline-offset:3px;
+  outline:2px dashed rgba(255,255,255,.55);
+  outline-offset:4px;
 }
+.move-mode [data-edit]:active{cursor:grabbing !important;outline-color:var(--accent)}
 
 @media(max-width:1240px){.scale{transform:scale(.72)}}
 @media(max-width:860px){
@@ -371,12 +408,12 @@ button{
 <div class="app">
 <aside class="controls">
   <a class="home-link" href="../">← Home</a>
-  <h1>SocialMV News Studio v3</h1>
-  <p>މި ވެރޝަންގައި ފޮޓޯ ޒޫމް/ޕޮޒިޝަން، ހެޑްލައިން އޮޓޯ-ފިޓް، ޕޯސްޓް ޓައިޕް ޕްރީސެޓް، ލޯގޯ އަޕްލޯޑް، އަލައިންމަންޓް/ސްޕޭސިންގް ކޮންޓްރޯލް އަދި ސޭފް ގައިޑްސް އެބަހުރި.</p>
+  <h1>SocialMV News Studio v3.1</h1>
+  <p>Create Dhivehi or English social-news posts. Adjust the photo, flip it horizontally, edit text, change spacing, and freely drag text elements on the poster.</p>
 
   <div class="group">
-    <h3>ޕޯސްޓް ޓައިޕް</h3>
-    <label>ޕްރީސެޓް</label>
+    <h3>Post Type</h3>
+    <label>Preset</label>
     <select id="postType">
       <option value="breaking">Breaking</option>
       <option value="news">News</option>
@@ -385,137 +422,138 @@ button{
       <option value="statement">Statement</option>
       <option value="quote">Quote</option>
     </select>
-    <div class="hint">ޕްރީސެޓް ބަދަލު ކުރުމުން ބެޖް ނަން/ކުލަ އަދި ކޯޓް މޯޑް އޮޓޯ ބަދަލުވާނެ.</div>
+    <div class="hint">Changing the preset updates the badge label, accent colour, and quote mode.</div>
   </div>
 
   <div class="group">
-    <h3>ފޮޓޯ</h3>
-    <label>މައި ފޮޓޯ</label>
+    <h3>Photo</h3>
+    <label>Main photo</label>
     <input id="photoInput" type="file" accept="image/*">
-    <label>ޒޫމް</label>
+    <label>Zoom</label>
     <input id="photoZoom" type="range" min="1" max="2.4" step="0.02" value="1">
     <div class="row">
       <div>
-        <label>X</label>
+        <label>Horizontal position</label>
         <input id="photoX" type="range" min="-220" max="220" step="2" value="0">
       </div>
       <div>
-        <label>Y</label>
+        <label>Vertical position</label>
         <input id="photoY" type="range" min="-220" max="220" step="2" value="0">
       </div>
     </div>
-    <button class="soft" id="resetPhotoPos" style="width:100%;margin-top:8px">ފޮޓޯ ރީސެޓް</button>
+    <button class="soft" id="flipPhotoBtn" style="width:100%;margin-top:8px">Flip Photo: OFF</button>
+    <button class="soft" id="resetPhotoPos" style="width:100%;margin-top:8px">Reset Photo Position</button>
   </div>
 
   <div class="group">
-    <h3>ޓެކްސްޓް</h3>
-    <label>ބެޖް / ކެޓެގަރީ</label>
+    <h3>Text</h3>
+    <label>Badge / category</label>
     <input data-bind="badge" value="BREAKING" dir="ltr">
     <div class="toggle-row">
-      <span>ބެޖް ފެންނަން</span>
+      <span>Show badge</span>
       <input id="showBadge" type="checkbox" checked>
     </div>
 
-    <label>ހެޑްލައިން</label>
+    <label>Headline</label>
     <textarea id="headlineInput" data-bind="headline">މިތަނަށް ބޮޑު ދިވެހި ހެޑްލައިން ލިޔުއްވާ</textarea>
     <div id="headlineCount" class="counter">0 / 95</div>
     <div class="toggle-row">
-      <span>ހެޑްލައިން އޮޓޯ-ފިޓް</span>
+      <span>Auto-fit headline</span>
       <input id="autoFitHeadline" type="checkbox" checked>
     </div>
 
-    <label>ސަބް ލައިން</label>
+    <label>Subline</label>
     <textarea id="sublineInput" data-bind="subline">ބޭނުންނަމަ ކުރު ސަބް ލައިނެއް މިތަނަށް ލިޔުއްވާ.</textarea>
     <div id="sublineCount" class="counter">0 / 140</div>
     <div class="toggle-row">
-      <span>ސަބް ލައިން ފެންނަން</span>
+      <span>Show subline</span>
       <input id="showSubline" type="checkbox" checked>
     </div>
 
-    <label>ކޯޓް / ހައިލައިޓް</label>
+    <label>Quote / highlight</label>
     <textarea data-bind="quote">ކުރު ކޯޓެއް ނުވަތަ ހައިލައިޓް މިތަނަށް.</textarea>
     <div class="toggle-row">
-      <span>ކޯޓް ފެންނަން</span>
+      <span>Show quote</span>
       <input id="showQuote" type="checkbox">
     </div>
   </div>
 
   <div class="group">
-    <h3>ލޯގޯ / ބްރޭންޑް</h3>
-    <label>ލޯގޯ ނަން</label>
+    <h3>Logo / Brand</h3>
+    <label>Brand name</label>
     <input data-bind="brand" value="SocialMV" dir="ltr">
-    <label>ރިއަލް ލޯގޯ އަޕްލޯޑް</label>
+    <label>Upload logo image</label>
     <input id="logoInput" type="file" accept="image/*">
     <div class="toggle-row">
-      <span>އަޕްލޯޑް ކޮށްފައިވާ ލޯގޯ ބޭނުން</span>
+      <span>Use uploaded logo</span>
       <input id="useLogoImage" type="checkbox">
     </div>
     <div class="toggle-row">
-      <span>މަތީ ބްރޭންޑް ފެންނަން</span>
+      <span>Show top brand</span>
       <input id="showTopBrand" type="checkbox" checked>
     </div>
   </div>
 
   <div class="group">
-    <h3>އަލައިންމަންޓް / ސްޕޭސިންގް</h3>
-    <label>ހެޑްލައިން އަލައިން</label>
+    <h3>Alignment / Spacing</h3>
+    <label>Headline alignment</label>
     <select id="headlineAlign">
       <option value="right">Right</option>
       <option value="center">Center</option>
       <option value="left">Left</option>
     </select>
-    <label>ސަބްލައިން އަލައިން</label>
+    <label>Subline alignment</label>
     <select id="sublineAlign">
       <option value="right">Right</option>
       <option value="center">Center</option>
       <option value="left">Left</option>
     </select>
-    <label>ހެޑްލައިން → ސަބްލައިން ގޭޕް</label>
-    <input id="headlineGap" type="range" min="4" max="48" step="1" value="16">
-    <label>ސޭފް މާޖިން</label>
-    <input id="safeMargin" type="range" min="30" max="100" step="2" value="56">
+    <label>Headline → subline gap</label>
+    <input id="headlineGap" type="range" min="4" max="64" step="1" value="16">
+    <label>Safe margin</label>
+    <input id="safeMargin" type="range" min="30" max="120" step="2" value="56">
     <div class="toggle-row">
-      <span>ސޭފް ގައިޑްސް ފެންނަން</span>
+      <span>Show safe guides</span>
       <input id="showGuides" type="checkbox">
     </div>
   </div>
 
   <div class="group">
-    <h3>މެޓާ</h3>
-    <label>ސޯސް</label>
+    <h3>Meta</h3>
+    <label>Source</label>
     <input data-bind="source" value="SOCIALMV" dir="ltr">
-    <label>ތާރީޚު</label>
+    <label>Date</label>
     <input data-bind="date" value="28 AUG 2026" dir="ltr">
     <div class="toggle-row">
-      <span>ތާރީޚު ފެންނަން</span>
+      <span>Show date</span>
       <input id="showDate" type="checkbox" checked>
     </div>
-    <label>ލޮކޭޝަން</label>
+    <label>Location</label>
     <input data-bind="location" value="Malé" dir="ltr">
     <div class="toggle-row">
-      <span>ލޮކޭޝަން ފެންނަން</span>
+      <span>Show location</span>
       <input id="showLocation" type="checkbox">
     </div>
     <div class="toggle-row">
-      <span>ތިރީ އައިކަން ފެންނަން</span>
+      <span>Show bottom icon</span>
       <input id="showBottomIcon" type="checkbox" checked>
     </div>
   </div>
 
   <div class="group">
-    <h3>ފޮންޓް ސައިޒް</h3>
-    <label>ޓެކްސްޓް ސެލެކްޓް</label>
+    <h3>Font Size</h3>
+    <label>Text element</label>
     <select id="fontTarget">
-      <option value="headline">ހެޑްލައިން</option>
-      <option value="subline">ސަބް ލައިން</option>
-      <option value="badge">ބެޖް</option>
+      <option value="headline">Headline</option>
+      <option value="subline">Subline</option>
+      <option value="badge">Badge</option>
       <option value="brand">SocialMV</option>
-      <option value="source">ސޯސް</option>
-      <option value="date">ތާރީޚު</option>
-      <option value="location">ލޮކޭޝަން</option>
-      <option value="quote">ކޯޓް</option>
+      <option value="source">Source</option>
+      <option value="date">Date</option>
+      <option value="location">Location</option>
+      <option value="quote">Quote</option>
     </select>
-    <label>ސައިޒް</label>
+    <label>Size</label>
     <input id="fontSizeRange" type="range" min="12" max="120" value="68">
     <div class="row">
       <div>
@@ -523,29 +561,29 @@ button{
         <input id="fontSizeNumber" type="number" min="12" max="120" value="68" dir="ltr">
       </div>
       <div>
-        <label>ރީސެޓް</label>
-        <button class="soft" id="resetFontBtn" style="width:100%">ޑިފޯލްޓް</button>
+        <label>Reset</label>
+        <button class="soft" id="resetFontBtn" style="width:100%">Default</button>
       </div>
     </div>
   </div>
 
   <div class="group">
-    <h3>ޓެކްސްޓް މޫވް</h3>
-    <button class="accent" id="moveBtn" style="width:100%">މޫވް މޯޑް: OFF</button>
-    <button class="soft" id="resetPositionsBtn" style="width:100%;margin-top:8px">ޕޮޒިޝަން ރީސެޓް</button>
-    <div class="hint">މޫވް މޯޑް ON ކޮށް ޓެކްސްޓް ދަމާފައި ބޭނުން ތަނަކަށް ގެންދެވޭނެ.</div>
+    <h3>Free Adjust</h3>
+    <button class="accent" id="moveBtn" style="width:100%">Free Adjust: OFF</button>
+    <button class="soft" id="resetPositionsBtn" style="width:100%;margin-top:8px">Reset Text Positions</button>
+    <div class="hint">Turn Free Adjust ON, then drag any text, badge, source, date, location, or brand directly to the exact position you want.</div>
   </div>
 
   <div class="group">
-    <h3>ބެޖް ކުލަ</h3>
+    <h3>Badge Colour</h3>
     <input id="accentPicker" type="color" value="#e31b23">
   </div>
 
   <div class="actions">
-    <button class="soft" id="saveBtn">ސޭވް</button>
-    <button class="soft" id="loadBtn">ލޯޑް</button>
-    <button class="soft" id="resetBtn">ރީސެޓް</button>
-    <button class="accent" id="downloadBtn">PNG ޑައުންލޯޑް</button>
+    <button class="soft" id="saveBtn">Save</button>
+    <button class="soft" id="loadBtn">Load</button>
+    <button class="soft" id="resetBtn">Reset</button>
+    <button class="accent" id="downloadBtn">Download PNG</button>
   </div>
 </aside>
 
@@ -554,7 +592,7 @@ button{
 <section class="poster" id="poster">
   <div class="photo">
     <img id="mainImg" alt="" style="display:none">
-    <div class="placeholder" id="photoPlaceholder">ފޮޓޯ އަޕްލޯޑް ކުރައްވާ</div>
+    <div class="placeholder" id="photoPlaceholder">Upload Photo</div>
   </div>
 
   <div class="safe-guides" id="safeGuides"></div>
@@ -635,14 +673,18 @@ function restorePhoto(){
     $('#photoPlaceholder').style.display='none';
   }
 }
+let photoFlipped=false;
 function applyPhotoTransform(){
   document.documentElement.style.setProperty('--photo-scale',$('#photoZoom').value);
   document.documentElement.style.setProperty('--photo-x',$('#photoX').value+'px');
   document.documentElement.style.setProperty('--photo-y',$('#photoY').value+'px');
+  document.documentElement.style.setProperty('--photo-flip',photoFlipped?-1:1);
+  $('#flipPhotoBtn').textContent=photoFlipped?'Flip Photo: ON':'Flip Photo: OFF';
 }
 ['photoZoom','photoX','photoY'].forEach(id=>$('#'+id).addEventListener('input',applyPhotoTransform));
+$('#flipPhotoBtn').onclick=()=>{photoFlipped=!photoFlipped;applyPhotoTransform();};
 $('#resetPhotoPos').onclick=()=>{
-  $('#photoZoom').value=1;$('#photoX').value=0;$('#photoY').value=0;applyPhotoTransform();
+  $('#photoZoom').value=1;$('#photoX').value=0;$('#photoY').value=0;photoFlipped=false;applyPhotoTransform();
 };
 
 /* LOGO */
@@ -809,7 +851,7 @@ function restorePositions(){
 function setMoveMode(on){
   moveMode=on;
   $('#poster').classList.toggle('move-mode',on);
-  $('#moveBtn').textContent=on?'މޫވް މޯޑް: ON':'މޫވް މޯޑް: OFF';
+  $('#moveBtn').textContent=on?'Free Adjust: ON':'Free Adjust: OFF';
   $$('[data-edit]').forEach(el=>el.contentEditable=on?'false':'true');
 }
 $('#moveBtn').onclick=()=>setMoveMode(!moveMode);
@@ -854,6 +896,7 @@ function collect(){
     d[id]=el.type==='checkbox'?el.checked:el.value;
   });
   ['photoZoom','photoX','photoY','headlineGap','safeMargin'].forEach(id=>d[id]=$('#'+id).value);
+  d.photoFlip=photoFlipped;
   d.accent=$('#accentPicker').value;
   return d;
 }
@@ -872,6 +915,7 @@ function apply(d){
   ['photoZoom','photoX','photoY','headlineGap','safeMargin'].forEach(id=>{
     if(d[id]!==undefined)$('#'+id).value=d[id];
   });
+  photoFlipped=!!d.photoFlip;
   if(d.accent){
     $('#accentPicker').value=d.accent;
     document.documentElement.style.setProperty('--accent',d.accent);
@@ -887,7 +931,7 @@ function apply(d){
 $('#saveBtn').onclick=()=>{
   localStorage.setItem('socialmvV3Data',JSON.stringify(collect()));
   savePositions();saveFontSizes();
-  alert('ސޭވް ކުރެވިއްޖެ.');
+  alert('Saved.');
 };
 $('#loadBtn').onclick=()=>{
   const d=localStorage.getItem('socialmvV3Data');
@@ -896,12 +940,12 @@ $('#loadBtn').onclick=()=>{
   applyLogoMode();applyVisibility();
 };
 $('#resetBtn').onclick=()=>{
-  if(!confirm('ރީސެޓް ކުރަންވީތޯ؟'))return;
+  if(!confirm('Reset all saved SocialMV data and settings?'))return;
   ['socialmvV3Data','socialmvV3Photo','socialmvV3Logo','socialmvV3Positions','socialmvV3FontSizes'].forEach(k=>localStorage.removeItem(k));
   location.reload();
 };
 $('#downloadBtn').onclick=async()=>{
-  const b=$('#downloadBtn');b.textContent='ރެންޑަރިންގ...';b.disabled=true;
+  const b=$('#downloadBtn');b.textContent='Rendering...';b.disabled=true;
   const guidesWas=$('#safeGuides').classList.contains('show');
   $('#safeGuides').classList.remove('show');
   try{
@@ -911,10 +955,10 @@ $('#downloadBtn').onclick=async()=>{
     a.href=canvas.toDataURL('image/png');
     a.click();
   }catch(e){
-    alert('PNG ހެދުމުގައި މައްސަލައެއް ދިމާވެއްޖެ.');
+    alert('There was a problem creating the PNG.');
   }finally{
     if(guidesWas)$('#safeGuides').classList.add('show');
-    b.textContent='PNG ޑައުންލޯޑް';b.disabled=false;
+    b.textContent='Download PNG';b.disabled=false;
   }
 };
 
