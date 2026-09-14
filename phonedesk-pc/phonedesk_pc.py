@@ -10,7 +10,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 APP_NAME = "PhoneDesk"
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 
 
 def normalize_host(host: str) -> str:
@@ -51,6 +51,11 @@ def pairing_code_after_result(code: str, success: bool) -> str:
     return "" if success else code
 
 
+def choose_pairing_endpoint(cached, discovered):
+    """Prefer the pairing endpoint Android is advertising right now."""
+    return discovered or cached
+
+
 def parse_adb_devices(output: str):
     devices = []
     for raw in output.splitlines():
@@ -61,6 +66,27 @@ def parse_adb_devices(output: str):
         if len(parts) >= 2:
             devices.append((parts[0], parts[1]))
     return devices
+
+
+def find_live_tcp_endpoint(output: str, preferred_host=None):
+    """Find an already-connected network ADB endpoint, preferring the known phone host."""
+    candidates = []
+    preferred = preferred_host.strip() if preferred_host else None
+    for serial, state in parse_adb_devices(output):
+        if state != "device" or ":" not in serial:
+            continue
+        host_text, port_text = serial.rsplit(":", 1)
+        host_text = host_text.strip("[]")
+        try:
+            endpoint = (normalize_host(host_text), normalize_port(port_text))
+        except ValueError:
+            continue
+        if preferred and endpoint[0] == preferred:
+            return endpoint
+        candidates.append(endpoint)
+    if len(candidates) == 1:
+        return candidates[0]
+    return None
 
 
 def endpoint_state(output: str, endpoint):
@@ -341,11 +367,30 @@ class PhoneDeskApp(tk.Tk):
     def _endpoint_connected(self, endpoint):
         return endpoint_is_connected(self._adb_devices_output(), endpoint)
 
+    def _use_live_endpoint(self, endpoint, status_text):
+        self.connected_endpoint = endpoint
+        self.host_var.set(endpoint[0])
+        self.device_port_var.set(str(endpoint[1]))
+        save_config(endpoint[0], endpoint[1], self.screen_off_var.get())
+        self.set_phone(f"Connected: {endpoint[0]}")
+        self.set_status(status_text)
+        self.after(0, self._show_connected_ui)
+
+    def _find_live_endpoint(self):
+        preferred = self.host_var.get().strip() or load_config().get("host", "").strip()
+        return find_live_tcp_endpoint(self._adb_devices_output(), preferred_host=preferred or None)
+
     def find_phone(self):
         def task():
             try:
                 self.set_status("Looking for your phone…")
                 run_capture([self.adb(), "start-server"], timeout=15)
+
+                live = self._find_live_endpoint()
+                if live:
+                    self._use_live_endpoint(live, "Already connected through ADB. Pairing is not needed.")
+                    return
+
                 found, _ = self._mdns()
                 pairing = found.get("pairing")
                 connect = found.get("connect")
@@ -361,7 +406,7 @@ class PhoneDeskApp(tk.Tk):
                     self.host_var.set(pairing[0])
                     self.pair_port_var.set(str(pairing[1]))
                     self.set_phone(f"Phone found: {pairing[0]}")
-                    self.set_status("Phone found. Enter the 6-digit code shown on Android, then press PAIR & CONNECT.")
+                    self.set_status("Phone found. Enter the fresh 6-digit code currently shown on Android, then press PAIR & CONNECT.")
                     self.after(0, self._show_pairing_ui)
                     self.after(0, self.code_entry.focus_set)
                     return
@@ -392,10 +437,13 @@ class PhoneDeskApp(tk.Tk):
 
         def task():
             try:
+                live = self._find_live_endpoint()
+                if live:
+                    self._use_live_endpoint(live, "Already connected through ADB. No new pairing code is needed.")
+                    return
+
                 if self.connected_endpoint is not None and self._endpoint_connected(self.connected_endpoint):
-                    self.set_phone(f"Connected: {self.connected_endpoint[0]}")
-                    self.set_status("Already connected. No new pairing code is needed.")
-                    self.after(0, self._show_connected_ui)
+                    self._use_live_endpoint(self.connected_endpoint, "Already connected. No new pairing code is needed.")
                     return
 
                 found, _ = self._mdns()
@@ -410,28 +458,42 @@ class PhoneDeskApp(tk.Tk):
                     self.after(0, lambda: messagebox.showerror("PhoneDesk", str(exc)))
                     return
 
-                pairing = self.pairing_endpoint or found.get("pairing")
+                fresh_pairing = found.get("pairing")
+                pairing = choose_pairing_endpoint(self.pairing_endpoint, fresh_pairing)
+                if fresh_pairing:
+                    self.pairing_endpoint = fresh_pairing
+                    self.host_var.set(fresh_pairing[0])
+                    self.pair_port_var.set(str(fresh_pairing[1]))
+
                 if pairing is None:
                     try:
                         pairing = (normalize_host(self.host_var.get()), normalize_port(self.pair_port_var.get()))
                     except ValueError:
-                        self.set_status("Press FIND MY PHONE first while the Android pairing-code popup is open.")
+                        self.set_status("Open Pair device with pairing code on Android, press FIND MY PHONE, then enter the fresh 6-digit code.")
                         return
 
                 pair_target = make_endpoint(pairing[0], pairing[1])
-                self.set_status("Pairing securely with your phone…")
+                self.set_status(f"Pairing with the current Android pairing endpoint {pair_target}…")
                 rc, output = run_capture([self.adb(), "pair", pair_target, code], timeout=35)
                 success = pairing_succeeded(rc, output)
                 self.after(0, lambda: self.code_var.set(pairing_code_after_result(raw_code, success)))
                 if not success:
                     detail = output or "ADB did not accept the pairing code."
-                    self.set_status(f"Pairing failed: {detail} Keep the current code visible or generate a fresh code and try again.")
+                    if "protocol fault" in detail.lower():
+                        self.pairing_endpoint = None
+                        self.set_status("Pairing endpoint changed or expired. On Android reopen Pair device with pairing code, then press FIND MY PHONE and enter the NEW 6-digit code.")
+                    else:
+                        self.set_status(f"Pairing failed: {detail} Keep the pairing popup open and use the current fresh code.")
                     return
 
                 self.set_status("Pairing succeeded. Finding the control connection…")
                 deadline = time.time() + 15
                 connect = None
                 while time.time() < deadline:
+                    live = self._find_live_endpoint()
+                    if live:
+                        self._use_live_endpoint(live, "Pairing succeeded. Android control connection is ready.")
+                        return
                     found, _ = self._mdns()
                     connect = found.get("connect")
                     if connect:
@@ -439,7 +501,7 @@ class PhoneDeskApp(tk.Tk):
                     time.sleep(1)
                 if connect and self._connect(connect):
                     return
-                self.set_status("Pairing succeeded, but the normal connection was not discovered. Close the pairing popup, keep Wireless debugging on, then press FIND MY PHONE.")
+                self.set_status("Pairing succeeded, but the control endpoint was not discovered yet. Keep Wireless debugging on and press FIND MY PHONE.")
             except Exception as exc:
                 self.set_status(f"Pairing error: {exc}")
         self.background(task)
@@ -451,10 +513,14 @@ class PhoneDeskApp(tk.Tk):
         if host and port:
             def task():
                 try:
+                    live = self._find_live_endpoint()
+                    if live:
+                        self._use_live_endpoint(live, "Connected to your trusted phone.")
+                        return
                     endpoint = (normalize_host(host), normalize_port(port))
                     self.set_status("Reconnecting to your trusted phone…")
                     if not self._connect(endpoint):
-                        self.set_status("Trusted phone saved. If its Wireless debugging port changed, press FIND MY PHONE.")
+                        self.set_status("Trusted phone saved. Its Wireless debugging port may have changed; press FIND MY PHONE.")
                 except Exception:
                     pass
             self.background(task)
@@ -462,11 +528,16 @@ class PhoneDeskApp(tk.Tk):
     def start_control(self):
         endpoint = self.connected_endpoint
         if endpoint is None:
-            try:
-                endpoint = (normalize_host(self.host_var.get()), normalize_port(self.device_port_var.get()))
-            except ValueError:
-                messagebox.showinfo("PhoneDesk", "Connect the phone first. Press FIND MY PHONE.")
-                return
+            live = self._find_live_endpoint()
+            if live:
+                endpoint = live
+                self._use_live_endpoint(live, "Connected through the live ADB endpoint.")
+            else:
+                try:
+                    endpoint = (normalize_host(self.host_var.get()), normalize_port(self.device_port_var.get()))
+                except ValueError:
+                    messagebox.showinfo("PhoneDesk", "Connect the phone first. Press FIND MY PHONE.")
+                    return
 
         def task():
             try:
