@@ -1,0 +1,83 @@
+name: Build PhoneDesk Windows v0.1
+
+on:
+  push:
+    branches:
+      - build/phonedesk-pc-v01
+    paths:
+      - 'phonedesk-pc/**'
+      - '.github/workflows/phonedesk-pc-v01.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          Set-Location phonedesk-pc
+          python -m unittest discover -v -p 'test_*.py'
+
+      - name: Install PyInstaller
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check pyinstaller==6.16.0
+
+      - name: Build PhoneDesk.exe
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name PhoneDesk phonedesk-pc/phonedesk_pc.py
+          if (-not (Test-Path 'dist/PhoneDesk.exe')) { throw 'PhoneDesk.exe was not created' }
+
+      - name: Download official scrcpy Windows bundle
+        shell: pwsh
+        run: |
+          $headers = @{ 'User-Agent' = 'PhoneDesk-CI' }
+          $release = Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/Genymobile/scrcpy/releases/latest'
+          $asset = $release.assets | Where-Object { $_.name -match '^scrcpy-win64-v.*\.zip$' } | Select-Object -First 1
+          if (-not $asset) {
+            $asset = $release.assets | Where-Object { $_.name -match 'win64.*\.zip$' } | Select-Object -First 1
+          }
+          if (-not $asset) { throw 'Could not find the official scrcpy Windows ZIP asset' }
+          Write-Host "Using $($asset.name)"
+          Invoke-WebRequest -Headers $headers -Uri $asset.browser_download_url -OutFile scrcpy.zip
+          Expand-Archive -Path scrcpy.zip -DestinationPath scrcpy-unpacked -Force
+          $scrcpy = Get-ChildItem scrcpy-unpacked -Recurse -Filter scrcpy.exe | Select-Object -First 1
+          if (-not $scrcpy) { throw 'scrcpy.exe not found after extraction' }
+          New-Item -ItemType Directory -Path PhoneDesk-Windows-v0.1 -Force | Out-Null
+          Copy-Item -Path (Join-Path $scrcpy.Directory.FullName '*') -Destination PhoneDesk-Windows-v0.1 -Recurse -Force
+          Copy-Item dist/PhoneDesk.exe PhoneDesk-Windows-v0.1/PhoneDesk.exe -Force
+          Copy-Item phonedesk-pc/README.txt PhoneDesk-Windows-v0.1/README.txt -Force
+
+      - name: Verify portable package
+        shell: pwsh
+        run: |
+          $required = @('PhoneDesk.exe', 'scrcpy.exe', 'adb.exe')
+          foreach ($file in $required) {
+            $path = Join-Path 'PhoneDesk-Windows-v0.1' $file
+            if (-not (Test-Path $path)) { throw "Missing required file: $file" }
+          }
+          & .\PhoneDesk-Windows-v0.1\adb.exe version
+          $exe = Get-Item .\PhoneDesk-Windows-v0.1\PhoneDesk.exe
+          if ($exe.Length -lt 1000000) { throw 'PhoneDesk.exe looks unexpectedly small' }
+          Write-Host "PhoneDesk.exe bytes: $($exe.Length)"
+
+      - name: Upload PhoneDesk Windows software
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhoneDesk-Windows-v0.1
+          path: PhoneDesk-Windows-v0.1
+          if-no-files-found: error
+          retention-days: 90
