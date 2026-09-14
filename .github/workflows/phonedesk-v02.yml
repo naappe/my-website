@@ -38,6 +38,7 @@ jobs:
         working-directory: phonedesk-android
         run: gradle testDebugUnitTest assembleDebug --stacktrace
 
+      # Pairing validation implementation checkpoint.
       - name: Upload PhoneDesk APK
         uses: actions/upload-artifact@v4
         with:
