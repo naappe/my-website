@@ -22,6 +22,12 @@ def test_health_reports_protocol_v1(client):
     assert response.json() == {"status": "ok", "protocol_version": 1}
 
 
+def test_public_api_docs_are_disabled(client):
+    assert client.get("/docs").status_code == 404
+    assert client.get("/redoc").status_code == 404
+    assert client.get("/openapi.json").status_code == 404
+
+
 def test_hello_acknowledges_device(client):
     with client.websocket_connect("/v1/ws") as ws:
         reply = hello(ws, "phone-1")
