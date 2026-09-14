@@ -46,7 +46,13 @@ def _parse_envelope(raw: Any) -> Envelope:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="PhoneDesk Relay", version="0.1.0")
+    app = FastAPI(
+        title="PhoneDesk Relay",
+        version="0.1.0",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     presence = PresenceRegistry()
     hub = ConnectionHub()
 
