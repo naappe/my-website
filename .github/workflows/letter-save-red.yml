@@ -1,0 +1,25 @@
+name: Letter Save Regression RED
+
+on:
+  push:
+    paths:
+      - '.github/workflows/letter-save-red.yml'
+
+jobs:
+  red-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: RED - saved document editing behavior is still missing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('letters/index.html').read_text(encoding='utf-8')
+          assert 'const ACTIVE_SAVED_KEY = "whiteSaffron.activeSavedDocumentId.v1";' in source, 'active saved-document state is missing'
+          assert 'function setActiveSavedDocumentId(id)' in source, 'saved document editor state is missing'
+          assert 'Save Changes' in source, 'save button does not switch to edit mode'
+          assert 'Edit / Open' in source, 'saved document cards do not expose edit mode'
+          assert 'function applyStandardTransferWording' in source, 'reusable transfer wording helper is missing'
+          assert 'function startNewTransferLetter' in source, 'new-letter workflow is missing'
+          PY
