@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.phonedesk"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.phonedesk"
@@ -34,7 +34,7 @@ android {
 }
 
 dependencies {
-    implementation("com.flyfishxu:kadb:2.1.3")
+    implementation("com.flyfishxu:kadb:2.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     testImplementation("junit:junit:4.13.2")
 }
