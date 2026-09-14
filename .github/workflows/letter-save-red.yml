@@ -1,9 +1,8 @@
 name: Letter Save Regression RED
 
 on:
-  push:
-    paths:
-      - '.github/workflows/letter-save-red.yml'
+  pull_request:
+    branches: [main]
 
 jobs:
   red-test:
