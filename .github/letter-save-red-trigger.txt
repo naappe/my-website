@@ -1,1 +1,1 @@
-Temporary trigger for the saved-letter regression test.
+Temporary trigger for the saved-letter implementation workflow.
