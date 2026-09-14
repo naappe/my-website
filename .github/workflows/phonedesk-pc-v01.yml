@@ -1,4 +1,4 @@
-name: Build PhoneDesk Windows v0.1
+name: Build PhoneDesk Windows v0.2
 
 on:
   push:
@@ -56,28 +56,28 @@ jobs:
           Expand-Archive -Path scrcpy.zip -DestinationPath scrcpy-unpacked -Force
           $scrcpy = Get-ChildItem scrcpy-unpacked -Recurse -Filter scrcpy.exe | Select-Object -First 1
           if (-not $scrcpy) { throw 'scrcpy.exe not found after extraction' }
-          New-Item -ItemType Directory -Path PhoneDesk-Windows-v0.1 -Force | Out-Null
-          Copy-Item -Path (Join-Path $scrcpy.Directory.FullName '*') -Destination PhoneDesk-Windows-v0.1 -Recurse -Force
-          Copy-Item dist/PhoneDesk.exe PhoneDesk-Windows-v0.1/PhoneDesk.exe -Force
-          Copy-Item phonedesk-pc/README.txt PhoneDesk-Windows-v0.1/README.txt -Force
+          New-Item -ItemType Directory -Path PhoneDesk-Windows-v0.2 -Force | Out-Null
+          Copy-Item -Path (Join-Path $scrcpy.Directory.FullName '*') -Destination PhoneDesk-Windows-v0.2 -Recurse -Force
+          Copy-Item dist/PhoneDesk.exe PhoneDesk-Windows-v0.2/PhoneDesk.exe -Force
+          Copy-Item phonedesk-pc/README.txt PhoneDesk-Windows-v0.2/README.txt -Force
 
       - name: Verify portable package
         shell: pwsh
         run: |
           $required = @('PhoneDesk.exe', 'scrcpy.exe', 'adb.exe')
           foreach ($file in $required) {
-            $path = Join-Path 'PhoneDesk-Windows-v0.1' $file
+            $path = Join-Path 'PhoneDesk-Windows-v0.2' $file
             if (-not (Test-Path $path)) { throw "Missing required file: $file" }
           }
-          & .\PhoneDesk-Windows-v0.1\adb.exe version
-          $exe = Get-Item .\PhoneDesk-Windows-v0.1\PhoneDesk.exe
+          & .\PhoneDesk-Windows-v0.2\adb.exe version
+          $exe = Get-Item .\PhoneDesk-Windows-v0.2\PhoneDesk.exe
           if ($exe.Length -lt 1000000) { throw 'PhoneDesk.exe looks unexpectedly small' }
           Write-Host "PhoneDesk.exe bytes: $($exe.Length)"
 
       - name: Upload PhoneDesk Windows software
         uses: actions/upload-artifact@v4
         with:
-          name: PhoneDesk-Windows-v0.1
-          path: PhoneDesk-Windows-v0.1
+          name: PhoneDesk-Windows-v0.2
+          path: PhoneDesk-Windows-v0.2
           if-no-files-found: error
           retention-days: 90
