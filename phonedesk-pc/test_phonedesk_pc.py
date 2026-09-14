@@ -17,6 +17,27 @@ class PhoneDeskCoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 phonedesk_pc.validate_pairing_code(bad)
 
+    def test_pairing_success_detects_adb_success(self):
+        self.assertTrue(phonedesk_pc.pairing_succeeded(0, "Successfully paired to 192.168.1.10:37123"))
+
+    def test_pairing_failure_does_not_clear_code(self):
+        self.assertEqual(
+            phonedesk_pc.pairing_code_after_result("123456", False),
+            "123456",
+        )
+
+    def test_pairing_success_clears_code(self):
+        self.assertEqual(phonedesk_pc.pairing_code_after_result("123456", True), "")
+
+    def test_endpoint_is_connected_only_when_adb_state_is_device(self):
+        output = """List of devices attached
+192.168.100.65:37721 device product:foo model:bar transport_id:1
+192.168.100.65:38888 offline transport_id:2
+"""
+        self.assertTrue(phonedesk_pc.endpoint_is_connected(output, ("192.168.100.65", 37721)))
+        self.assertFalse(phonedesk_pc.endpoint_is_connected(output, ("192.168.100.65", 38888)))
+        self.assertFalse(phonedesk_pc.endpoint_is_connected(output, ("192.168.100.65", 39999)))
+
     def test_parse_adb_devices(self):
         output = """List of devices attached
 192.168.1.10:43211 device product:foo model:bar transport_id:1
