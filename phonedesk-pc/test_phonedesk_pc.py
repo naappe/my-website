@@ -38,6 +38,40 @@ class PhoneDeskCoreTests(unittest.TestCase):
         self.assertFalse(phonedesk_pc.endpoint_is_connected(output, ("192.168.100.65", 38888)))
         self.assertFalse(phonedesk_pc.endpoint_is_connected(output, ("192.168.100.65", 39999)))
 
+    def test_endpoint_state_reports_real_adb_state(self):
+        output = """List of devices attached
+192.168.100.65:37721 device product:foo model:bar transport_id:1
+192.168.100.65:38888 unauthorized transport_id:2
+"""
+        self.assertEqual(phonedesk_pc.endpoint_state(output, ("192.168.100.65", 37721)), "device")
+        self.assertEqual(phonedesk_pc.endpoint_state(output, ("192.168.100.65", 38888)), "unauthorized")
+        self.assertIsNone(phonedesk_pc.endpoint_state(output, ("192.168.100.65", 39999)))
+
+    def test_build_scrcpy_args_adds_screen_off_flags_when_enabled(self):
+        args = phonedesk_pc.build_scrcpy_args(
+            "C:/PhoneDesk/scrcpy.exe",
+            ("192.168.100.65", 37721),
+            True,
+        )
+        self.assertEqual(args[:5], [
+            "C:/PhoneDesk/scrcpy.exe",
+            "--serial",
+            "192.168.100.65:37721",
+            "--window-title",
+            "PhoneDesk",
+        ])
+        self.assertIn("--turn-screen-off", args)
+        self.assertIn("--power-off-on-close", args)
+
+    def test_build_scrcpy_args_omits_screen_off_flags_when_disabled(self):
+        args = phonedesk_pc.build_scrcpy_args(
+            "C:/PhoneDesk/scrcpy.exe",
+            ("192.168.100.65", 37721),
+            False,
+        )
+        self.assertNotIn("--turn-screen-off", args)
+        self.assertNotIn("--power-off-on-close", args)
+
     def test_parse_adb_devices(self):
         output = """List of devices attached
 192.168.1.10:43211 device product:foo model:bar transport_id:1
