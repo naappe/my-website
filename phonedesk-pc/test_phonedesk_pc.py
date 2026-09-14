@@ -128,10 +128,17 @@ adb-1234 _adb-tls-connect._tcp. 192.168.100.65:37721
         self.assertEqual(phonedesk_pc.parse_mdns_services("List of discovered mdns services"), {})
 
     def test_saved_config_schema_excludes_pairing_secret(self):
-        # Security invariant: persistent config must never need pairing_port or pairing_code.
         keys = {"host", "device_port", "screen_off"}
         self.assertNotIn("pairing_code", keys)
         self.assertNotIn("pairing_port", keys)
+
+    def test_remote_pairing_panel_hidden_after_trust(self):
+        self.assertTrue(phonedesk_pc.remote_pairing_panel_visible(False))
+        self.assertFalse(phonedesk_pc.remote_pairing_panel_visible(True))
+
+    def test_remote_primary_status(self):
+        self.assertEqual(phonedesk_pc.remote_primary_status(False), "Pair your phone")
+        self.assertEqual(phonedesk_pc.remote_primary_status(True), "Ready")
 
 
 if __name__ == "__main__":
