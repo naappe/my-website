@@ -29,6 +29,34 @@ class PhoneDeskCoreTests(unittest.TestCase):
     def test_pairing_success_clears_code(self):
         self.assertEqual(phonedesk_pc.pairing_code_after_result("123456", True), "")
 
+    def test_fresh_pairing_endpoint_wins_over_cached_endpoint(self):
+        cached = ("192.168.100.65", 3483)
+        fresh = ("192.168.100.65", 42117)
+        self.assertEqual(phonedesk_pc.choose_pairing_endpoint(cached, fresh), fresh)
+
+    def test_cached_pairing_endpoint_is_used_only_when_fresh_missing(self):
+        cached = ("192.168.100.65", 3483)
+        self.assertEqual(phonedesk_pc.choose_pairing_endpoint(cached, None), cached)
+
+    def test_find_live_tcp_endpoint_prefers_requested_host(self):
+        output = """List of devices attached
+192.168.100.20:40111 device product:foo model:a transport_id:1
+192.168.100.65:37721 device product:foo model:b transport_id:2
+192.168.100.65:39999 offline transport_id:3
+emulator-5554 device product:sdk model:emu transport_id:4
+"""
+        self.assertEqual(
+            phonedesk_pc.find_live_tcp_endpoint(output, preferred_host="192.168.100.65"),
+            ("192.168.100.65", 37721),
+        )
+
+    def test_find_live_tcp_endpoint_returns_only_live_network_device(self):
+        output = """List of devices attached
+192.168.100.65:37721 device product:foo model:b transport_id:2
+emulator-5554 device product:sdk model:emu transport_id:4
+"""
+        self.assertEqual(phonedesk_pc.find_live_tcp_endpoint(output), ("192.168.100.65", 37721))
+
     def test_endpoint_is_connected_only_when_adb_state_is_device(self):
         output = """List of devices attached
 192.168.100.65:37721 device product:foo model:bar transport_id:1
