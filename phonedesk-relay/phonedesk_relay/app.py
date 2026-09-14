@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import time
 from typing import Any
 
-from fastapi import FastAPI, WebSocket
-from pydantic import ValidationError
+from fastapi import FastAPI, HTTPException, Request, WebSocket
+from pydantic import BaseModel, ValidationError
 from starlette.websockets import WebSocketDisconnect
 
+from .device_auth import ReplayGuard, canonical_request, verify_signature
+from .devices import DeviceRegistry, RegisteredDevice
+from .pairing import PairingManager, PairingState
 from .presence import PresenceRegistry
 from .protocol import Envelope, MessageType, PROTOCOL_VERSION, validate_protocol_version
 
@@ -30,6 +36,20 @@ class ConnectionHub:
         return True
 
 
+class DeviceRegistrationInput(BaseModel):
+    display_name: str
+    platform: str
+    public_key_der_b64: str
+
+
+class PairingClaimInput(BaseModel):
+    manual_code: str
+
+
+class PairingConfirmInput(BaseModel):
+    approved: bool
+
+
 def _error(device_id: str, code: str, message: str) -> dict[str, Any]:
     return {
         "protocol_version": PROTOCOL_VERSION,
@@ -45,20 +65,134 @@ def _parse_envelope(raw: Any) -> Envelope:
     return Envelope.model_validate(raw)
 
 
-def create_app() -> FastAPI:
+def _fingerprint(public_key_der: bytes) -> str:
+    digest = hashlib.sha256(public_key_der).digest()
+    return ":".join(f"{value:02X}" for value in digest[:4])
+
+
+def _device_summary(device: RegisteredDevice) -> dict[str, Any]:
+    return {
+        "device_id": device.device_id,
+        "display_name": device.display_name,
+        "platform": device.platform,
+        "fingerprint": _fingerprint(device.public_key_der),
+        "public_key_der_b64": base64.b64encode(device.public_key_der).decode("ascii"),
+    }
+
+
+def create_app(pairing_hmac_key: bytes = b"development-only-change-me") -> FastAPI:
     app = FastAPI(
         title="PhoneDesk Relay",
-        version="0.1.0",
+        version="0.2.0",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
     )
     presence = PresenceRegistry()
     hub = ConnectionHub()
+    devices = DeviceRegistry()
+    pairings = PairingManager(pairing_hmac_key)
+    replay_guard = ReplayGuard(max_age_seconds=120)
+
+    async def authenticate_request(request: Request) -> tuple[RegisteredDevice, bytes]:
+        device_id = request.headers.get("X-PhoneDesk-Device", "").strip()
+        timestamp_text = request.headers.get("X-PhoneDesk-Timestamp", "").strip()
+        nonce = request.headers.get("X-PhoneDesk-Nonce", "").strip()
+        signature = request.headers.get("X-PhoneDesk-Signature", "").strip()
+        if not device_id or not timestamp_text or not nonce or not signature:
+            raise HTTPException(status_code=401, detail="missing PhoneDesk authentication headers")
+
+        device = devices.get(device_id)
+        if device is None:
+            raise HTTPException(status_code=401, detail="unknown device")
+
+        try:
+            timestamp = int(timestamp_text)
+        except ValueError as exc:
+            raise HTTPException(status_code=401, detail="invalid timestamp") from exc
+
+        if not replay_guard.accept(device_id, timestamp, nonce):
+            raise HTTPException(status_code=401, detail="expired or replayed request")
+
+        body = await request.body()
+        message = canonical_request(request.method, request.url.path, timestamp_text, nonce, body)
+        if not verify_signature(device.public_key_der, message, signature):
+            raise HTTPException(status_code=401, detail="invalid signature")
+        return device, body
 
     @app.get("/health")
     async def health() -> dict[str, Any]:
         return {"status": "ok", "protocol_version": PROTOCOL_VERSION}
+
+    @app.post("/v1/devices/register")
+    async def register_device(payload: DeviceRegistrationInput) -> dict[str, Any]:
+        try:
+            public_key_der = base64.b64decode(payload.public_key_der_b64, validate=True)
+            device = devices.register(payload.display_name, payload.platform, public_key_der)
+        except (ValueError, TypeError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return _device_summary(device)
+
+    @app.post("/v1/pairings")
+    async def create_pairing(request: Request) -> dict[str, Any]:
+        device, _ = await authenticate_request(request)
+        if device.platform != "android":
+            raise HTTPException(status_code=403, detail="only Android devices can create pairings")
+        created = pairings.create(device.device_id, now=int(time.time()))
+        return {
+            "pairing_id": created.pairing_id,
+            "manual_code": created.manual_code,
+            "expires_at": created.expires_at,
+            "expires_in_seconds": 300,
+        }
+
+    @app.post("/v1/pairings/{pairing_id}/claim")
+    async def claim_pairing(pairing_id: str, request: Request) -> dict[str, Any]:
+        device, body = await authenticate_request(request)
+        if device.platform != "windows":
+            raise HTTPException(status_code=403, detail="only Windows devices can claim pairings")
+        try:
+            payload = PairingClaimInput.model_validate_json(body)
+            view = pairings.claim(pairing_id, device.device_id, payload.manual_code, now=int(time.time()))
+        except (ValidationError, ValueError, KeyError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"pairing_id": view.pairing_id, "state": view.state.value}
+
+    @app.get("/v1/pairings/{pairing_id}")
+    async def pairing_status(pairing_id: str, request: Request) -> dict[str, Any]:
+        device, _ = await authenticate_request(request)
+        try:
+            view = pairings.get(pairing_id, now=int(time.time()))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="pairing not found") from exc
+        if view.phone_id != device.device_id:
+            raise HTTPException(status_code=403, detail="only the pairing phone can view status")
+        computer = devices.get(view.computer_id) if view.computer_id else None
+        return {
+            "pairing_id": view.pairing_id,
+            "state": view.state.value,
+            "expires_at": view.expires_at,
+            "computer": _device_summary(computer) if computer is not None else None,
+        }
+
+    @app.post("/v1/pairings/{pairing_id}/confirm")
+    async def confirm_pairing(pairing_id: str, request: Request) -> dict[str, Any]:
+        device, body = await authenticate_request(request)
+        try:
+            payload = PairingConfirmInput.model_validate_json(body)
+            view = pairings.confirm(pairing_id, device.device_id, payload.approved, now=int(time.time()))
+            if view.state is PairingState.CONFIRMED:
+                if view.computer_id is None:
+                    raise ValueError("claimed pairing has no computer")
+                devices.trust(view.phone_id, view.computer_id)
+        except (ValidationError, ValueError, KeyError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"pairing_id": view.pairing_id, "state": view.state.value}
+
+    @app.get("/v1/trusted-devices")
+    async def trusted_devices(request: Request) -> dict[str, Any]:
+        device, _ = await authenticate_request(request)
+        return {"devices": [_device_summary(peer) for peer in devices.list_trusted(device.device_id)]}
 
     @app.websocket("/v1/ws")
     async def relay_socket(websocket: WebSocket) -> None:
