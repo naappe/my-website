@@ -10,7 +10,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 APP_NAME = "PhoneDesk"
-VERSION = "0.2"
+VERSION = "0.2.1"
 
 
 def normalize_host(host: str) -> str:
@@ -43,6 +43,14 @@ def validate_pairing_code(code: str) -> str:
     return value
 
 
+def pairing_succeeded(returncode: int, output: str) -> bool:
+    return returncode == 0 and "success" in (output or "").lower()
+
+
+def pairing_code_after_result(code: str, success: bool) -> str:
+    return "" if success else code
+
+
 def parse_adb_devices(output: str):
     devices = []
     for raw in output.splitlines():
@@ -53,6 +61,11 @@ def parse_adb_devices(output: str):
         if len(parts) >= 2:
             devices.append((parts[0], parts[1]))
     return devices
+
+
+def endpoint_is_connected(output: str, endpoint) -> bool:
+    target = make_endpoint(endpoint[0], endpoint[1])
+    return any(serial == target and state == "device" for serial, state in parse_adb_devices(output))
 
 
 def parse_mdns_services(output: str):
@@ -170,6 +183,7 @@ class PhoneDeskApp(tk.Tk):
         style.configure("Card.TLabel", background="#111827", foreground="#e5e7eb", font=("Segoe UI", 10))
         style.configure("CardTitle.TLabel", background="#111827", foreground="#f8fafc", font=("Segoe UI Semibold", 15))
         style.configure("Phone.TLabel", background="#111827", foreground="#86efac", font=("Segoe UI Semibold", 12))
+        style.configure("Status.TLabel", background="#111827", foreground="#facc15", font=("Segoe UI Semibold", 10))
         style.configure("TButton", font=("Segoe UI Semibold", 10), padding=(12, 9))
         style.configure("Big.TButton", font=("Segoe UI Semibold", 13), padding=(18, 13))
         style.configure("TEntry", padding=9, font=("Segoe UI", 12))
@@ -191,15 +205,13 @@ class PhoneDeskApp(tk.Tk):
         ttk.Label(card, text="Only enter the code shown by Android. PhoneDesk never saves it.", style="Card.TLabel").pack(anchor="w", pady=(6, 8))
         self.code_entry = ttk.Entry(card, textvariable=self.code_var, justify="center", show="•")
         self.code_entry.pack(fill="x")
-        ttk.Button(card, text="PAIR & CONNECT", style="Big.TButton", command=self.pair_and_connect).pack(fill="x", pady=(10, 0))
+        self.pair_button = ttk.Button(card, text="PAIR & CONNECT", style="Big.TButton", command=self.pair_and_connect)
+        self.pair_button.pack(fill="x", pady=(10, 0))
+        ttk.Label(card, textvariable=self.status_var, style="Status.TLabel", wraplength=560).pack(anchor="w", pady=(10, 0))
         ttk.Separator(card).pack(fill="x", pady=18)
         ttk.Label(card, text="3  Control", style="CardTitle.TLabel").pack(anchor="w")
         ttk.Checkbutton(card, text="Keep the physical phone screen OFF while controlling", variable=self.screen_off_var).pack(anchor="w", pady=(8, 10))
         ttk.Button(card, text="CONTROL PHONE", style="Big.TButton", command=self.start_control).pack(fill="x")
-        status = ttk.Frame(outer, style="Card.TFrame", padding=16)
-        status.pack(fill="x", pady=(14, 0))
-        ttk.Label(status, text="Status", style="CardTitle.TLabel").pack(anchor="w")
-        ttk.Label(status, textvariable=self.status_var, style="Card.TLabel", wraplength=560).pack(anchor="w", pady=(5, 0))
         self.manual_frame = ttk.Frame(outer, style="Card.TFrame", padding=16)
         ttk.Button(outer, text="Manual setup (only if automatic discovery fails)", command=self.toggle_manual).pack(anchor="w", pady=(12, 0))
         ttk.Label(self.manual_frame, text="Manual fallback", style="CardTitle.TLabel").grid(row=0, column=0, columnspan=3, sticky="w")
@@ -239,20 +251,24 @@ class PhoneDeskApp(tk.Tk):
         _, output = run_capture([self.adb(), "mdns", "services"], timeout=15)
         return parse_mdns_services(output), output
 
+    def _endpoint_connected(self, endpoint):
+        _, output = run_capture([self.adb(), "devices"], timeout=10)
+        return endpoint_is_connected(output, endpoint)
+
     def find_phone(self):
         def task():
             try:
                 self.set_status("Looking for your phone…"); run_capture([self.adb(), "start-server"], timeout=15)
                 found, _ = self._mdns(); pairing = found.get("pairing"); connect = found.get("connect")
+                if connect:
+                    self.connected_endpoint = connect; self.host_var.set(connect[0]); self.device_port_var.set(str(connect[1]))
+                    self.set_phone(f"Trusted phone found: {connect[0]}")
+                    if self._connect(connect): return
                 if pairing:
                     self.pairing_endpoint = pairing; self.host_var.set(pairing[0]); self.pair_port_var.set(str(pairing[1]))
                     self.set_phone(f"Phone found: {pairing[0]}")
                     self.set_status("Phone found. Enter the 6-digit code shown on Android, then press PAIR & CONNECT.")
                     self.after(0, self.code_entry.focus_set); return
-                if connect:
-                    self.connected_endpoint = connect; self.host_var.set(connect[0]); self.device_port_var.set(str(connect[1]))
-                    self.set_phone(f"Trusted phone found: {connect[0]}")
-                    if self._connect(connect): return
                 self.set_phone("Phone not visible yet")
                 self.set_status("On the phone, open Wireless debugging → Pair device with pairing code, keep the popup open, then press FIND MY PHONE again.")
             except Exception as exc: self.set_status(f"Could not find phone: {exc}")
@@ -267,20 +283,43 @@ class PhoneDeskApp(tk.Tk):
         self.set_status(output or "Could not connect to the phone"); return False
 
     def pair_and_connect(self):
-        try: code = validate_pairing_code(self.code_var.get())
-        except ValueError as exc: messagebox.showerror("PhoneDesk", str(exc)); return
+        raw_code = self.code_var.get()
+
         def task():
             try:
-                pairing = self.pairing_endpoint
+                if self.connected_endpoint is not None and self._endpoint_connected(self.connected_endpoint):
+                    self.set_phone(f"Connected: {self.connected_endpoint[0]}")
+                    self.set_status("Already connected. No new pairing code is needed. Press CONTROL PHONE.")
+                    return
+
+                found, _ = self._mdns()
+                connect = found.get("connect")
+                if connect and self._connect(connect):
+                    self.set_status("Trusted phone connected. No new pairing code was needed. Press CONTROL PHONE.")
+                    return
+
+                try:
+                    code = validate_pairing_code(raw_code)
+                except ValueError as exc:
+                    self.after(0, lambda: messagebox.showerror("PhoneDesk", str(exc)))
+                    return
+
+                pairing = self.pairing_endpoint or found.get("pairing")
                 if pairing is None:
                     try: pairing = (normalize_host(self.host_var.get()), normalize_port(self.pair_port_var.get()))
                     except ValueError:
                         self.set_status("Press FIND MY PHONE first while the Android pairing-code popup is open."); return
+
                 pair_target = make_endpoint(pairing[0], pairing[1]); self.set_status("Pairing securely with your phone…")
-                rc, output = run_capture([self.adb(), "pair", pair_target, code], timeout=35); self.after(0, lambda: self.code_var.set(""))
-                if rc != 0 or "success" not in output.lower():
-                    self.set_status(output or "Pairing failed. Generate a new pairing code and try again."); return
-                self.set_status("Paired. Finding the control connection…")
+                rc, output = run_capture([self.adb(), "pair", pair_target, code], timeout=35)
+                success = pairing_succeeded(rc, output)
+                self.after(0, lambda: self.code_var.set(pairing_code_after_result(raw_code, success)))
+                if not success:
+                    detail = output or "ADB did not accept the pairing code."
+                    self.set_status(f"Pairing failed: {detail} Keep the current code visible or generate a fresh code and try again.")
+                    return
+
+                self.set_status("Pairing succeeded. Finding the control connection…")
                 deadline = time.time() + 15; connect = None
                 while time.time() < deadline:
                     found, _ = self._mdns(); connect = found.get("connect")
@@ -289,7 +328,7 @@ class PhoneDeskApp(tk.Tk):
                 if connect and self._connect(connect): return
                 self.set_status("Pairing succeeded, but the normal connection was not discovered. Close the pairing popup, keep Wireless debugging on, then press FIND MY PHONE.")
             except Exception as exc:
-                self.after(0, lambda: self.code_var.set("")); self.set_status(f"Pairing error: {exc}")
+                self.set_status(f"Pairing error: {exc}")
         self.background(task)
 
     def auto_reconnect(self):
