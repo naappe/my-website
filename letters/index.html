@@ -1720,7 +1720,10 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
     </div>
     <div class="management-card">
       <div class="field"><label>Company Name</label><input id="settingCompanyName" value="Cafe' White Saffron"></div>
-      <div class="field"><label>Location</label><input id="settingLocation" value="Villimale, Maldives"></div>
+      <div class="grid2">
+        <div class="field"><label>Location</label><input id="settingLocation" value="Villimale, Maldives"></div>
+        <div class="field"><label>Company Registration No.</label><input id="settingCompanyReg" value="SP10462024"></div>
+      </div>
       <div class="grid2">
         <div class="field"><label>Reference Prefix</label><input id="settingRefPrefix" value="CWS"></div>
         <div class="field"><label>Next Reference Number</label><input id="settingNextRef" type="number" min="1" value="1"></div>
@@ -2442,12 +2445,17 @@ installTransferWordingTools();
 restoreSavedDocumentEditingState();
 
 function getSettings(){
-  return {...{companyName:"Cafe' White Saffron",location:"Villimale, Maldives",refPrefix:"CWS",nextRef:1,footer:"Cafe' White Saffron • Villimale • Maldives"},...safeJSON(SETTINGS_KEY,{})};
+  return {...{companyName:"Cafe' White Saffron",companyReg:"SP10462024",location:"Villimale, Maldives",refPrefix:"CWS",nextRef:1,footer:"Cafe' White Saffron • Villimale • Maldives"},...safeJSON(SETTINGS_KEY,{})};
 }
 function saveSettingsObject(s){ putJSON(SETTINGS_KEY,s); applyCompanySettings(s); }
 function loadSettingsForm(){
   const s=getSettings();
+  if(!s.companyReg){
+    s.companyReg="SP10462024";
+    putJSON(SETTINGS_KEY,s);
+  }
   document.getElementById("settingCompanyName").value=s.companyName;
+  document.getElementById("settingCompanyReg").value=s.companyReg || "SP10462024";
   document.getElementById("settingLocation").value=s.location;
   document.getElementById("settingRefPrefix").value=s.refPrefix;
   document.getElementById("settingNextRef").value=s.nextRef;
@@ -2456,6 +2464,11 @@ function loadSettingsForm(){
 function applyCompanySettings(s=getSettings()){
   document.querySelectorAll(".lh-name").forEach(el=>el.textContent=s.companyName);
   document.querySelectorAll(".lh-place").forEach(el=>el.textContent=s.location);
+  const currentRegField=document.querySelector('[data-key="currentReg"]');
+  if(currentRegField && s.companyReg){
+    currentRegField.value=s.companyReg;
+    document.querySelectorAll('[data-out="currentReg"]').forEach(el=>el.textContent=s.companyReg);
+  }
   document.querySelectorAll(".letter-footer").forEach(el=>el.textContent=s.footer);
   document.querySelectorAll(".dv-company").forEach(el=>el.textContent=s.companyName);
   document.querySelectorAll(".pro-company").forEach(el=>el.textContent=`For ${s.companyName}`);
@@ -2463,6 +2476,7 @@ function applyCompanySettings(s=getSettings()){
 document.getElementById("saveSettingsBtn").addEventListener("click",()=>{
   const s={
     companyName:document.getElementById("settingCompanyName").value.trim(),
+    companyReg:document.getElementById("settingCompanyReg").value.trim() || "SP10462024",
     location:document.getElementById("settingLocation").value.trim(),
     refPrefix:document.getElementById("settingRefPrefix").value.trim()||"CWS",
     nextRef:Math.max(1,Number(document.getElementById("settingNextRef").value)||1),
