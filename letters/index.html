@@ -989,6 +989,90 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
   .mini-search{width:100%;min-width:0}
 }
 
+
+
+/* Professional single-page transfer letter */
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4{
+  width:794px;
+  min-height:1122px;
+  height:1122px;
+  padding:28px 58px 34px;
+  overflow:hidden;
+  background:#fff;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .letterhead{
+  min-height:74px;
+  align-items:center;
+  padding-bottom:11px;
+  margin-bottom:19px;
+  border-bottom:2px solid var(--gold);
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .letterhead img{
+  width:84px;
+  max-height:66px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .lh-text{
+  align-self:center;
+  text-align:right;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .lh-name{
+  font-size:16px;
+  line-height:1.2;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .lh-place{
+  margin-top:3px;
+  font-size:10.5px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .date-line{
+  margin-bottom:18px;
+  font-size:12.5px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .to-line{
+  margin-bottom:11px;
+  font-size:13px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .subject{
+  margin:11px 0 16px;
+  font-size:14px;
+  line-height:1.35;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .info-grid{
+  margin-bottom:17px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .info-item{
+  min-height:54px;
+  padding:8px 10px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .letter-body p{
+  margin:0 0 11px;
+  font-size:12.5px;
+  line-height:1.58;
+  text-align:justify;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .closing{
+  margin-top:17px;
+  font-size:12.5px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .for-company{
+  margin-top:8px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .signature-block-image{
+  margin-top:6px !important;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .template-signatory-text{
+  margin-top:5px;
+  font-size:10.5px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .letter-footer{
+  position:absolute;
+  left:58px;
+  right:58px;
+  bottom:24px;
+  margin:0;
+  padding-top:8px;
+  font-size:9px !important;
+}
+
 </style>
 </head>
 <body>
@@ -1863,21 +1947,39 @@ document.getElementById("pdfBtn").addEventListener("click", async () => {
         ? "White_Saffron_English_Letter.pdf"
         : employee + "_Transfer_No_Objection_Letter.pdf";
 
-  const opt = {
-    margin: 0,
-    filename,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 3, useCORS: true, backgroundColor: "#ffffff" },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["avoid-all", "css", "legacy"] }
-  };
-
   try {
-    if (typeof html2pdf === "undefined") throw new Error("PDF library unavailable");
+    if (typeof html2canvas === "undefined") throw new Error("PDF renderer unavailable");
+    const JsPDF = window.jspdf?.jsPDF || window.jsPDF;
+    if (!JsPDF) throw new Error("PDF engine unavailable");
+
     showToast("Preparing current page...");
-    await html2pdf().set(opt).from(pageElement).save();
+
+    const previousTransform = pageElement.style.transform;
+    const previousMargin = pageElement.style.margin;
+    pageElement.style.transform = "none";
+    pageElement.style.margin = "0";
+
+    const canvas = await html2canvas(pageElement, {
+      scale: 2.5,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: 794
+    });
+
+    pageElement.style.transform = previousTransform;
+    pageElement.style.margin = previousMargin;
+
+    const pdf = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+    const img = canvas.toDataURL("image/jpeg", 0.97);
+    pdf.addImage(img, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+    pdf.save(filename);
+
     showToast("PDF downloaded");
   } catch (e) {
+    console.error(e);
     alert("Direct PDF download could not load. Use 'Print / Save PDF' instead.");
   }
 });
