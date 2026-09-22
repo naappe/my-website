@@ -176,6 +176,29 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
   margin-bottom:3px;
 }
 .info-value{font-size:11.5px;font-weight:700;line-height:1.25;word-break:break-word}
+.work-permit-strip{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  margin:-8px 0 17px;
+  padding:9px 12px;
+  border:1px solid #d9d9d9;
+  border-left:3px solid var(--gold);
+  background:#faf8f4;
+}
+.work-permit-strip .wp-label{
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#6b7280;
+}
+.work-permit-strip .wp-value{
+  font-size:12px;
+  font-weight:800;
+  color:#1f2937;
+}
 .letter-body p{margin:0 0 15px;text-align:justify}
 .closing{margin-top:24px}
 .for-company{font-weight:800;margin-top:10px;margin-bottom:0}
@@ -1037,7 +1060,11 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
   line-height:1.35;
 }
 #pdfDocument .preview-page[data-preview-page="transfer"] #a4 .info-grid{
-  margin-bottom:17px;
+  margin-bottom:10px;
+}
+#pdfDocument .preview-page[data-preview-page="transfer"] #a4 .work-permit-strip{
+  margin:0 0 14px;
+  padding:8px 10px;
 }
 #pdfDocument .preview-page[data-preview-page="transfer"] #a4 .info-item{
   min-height:54px;
@@ -1479,6 +1506,11 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
             <div class="info-label">Registration No.</div>
             <div class="info-value" data-out="regNo"></div>
           </div>
+        </div>
+
+        <div class="work-permit-strip">
+          <span class="wp-label">Work Permit No.</span>
+          <span class="wp-value" data-out="workPermit"></span>
         </div>
 
         <div class="letter-body">
