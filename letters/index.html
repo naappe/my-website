@@ -1048,25 +1048,25 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
       <div class="grid2">
         <div class="field">
           <label>Date</label>
-          <input data-key="date" value="27 August 2026">
+          <input data-key="date" value="22 September 2026">
         </div>
         <div class="field">
           <label>Subject</label>
-          <input data-key="subject" value="White Saffron Documents – Goma Karki">
+          <input data-key="subject" value="Employee Transfer – Jenisha Adhikari">
         </div>
       </div>
     </section>
 
     <section class="section">
       <div class="section-title"><span class="dot"></span>Employee</div>
-      <div class="field"><label>Employee name</label><input data-key="employee" value="GOMA KARKI"></div>
+      <div class="field"><label>Employee name</label><input data-key="employee" value="JENISHA ADHIKARI"></div>
       <div class="grid2">
-        <div class="field"><label>Passport No.</label><input data-key="passport" value="PA3844769"></div>
+        <div class="field"><label>Passport No.</label><input data-key="passport" value="11870474"></div>
         <div class="field"><label>Nationality</label><input data-key="nationality" value="Nepalese"></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>Date of Birth</label><input data-key="employeeDob" value="26 October 1999"></div>
-        <div class="field"><label>Contact No.</label><input data-key="employeePhone" value="7966880"></div>
+        <div class="field"><label>Date of Birth</label><input data-key="employeeDob" value="13 March 2003"></div>
+        <div class="field"><label>Contact No.</label><input data-key="employeePhone" value="+960 799 1303"></div>
       </div>
     </section>
 
@@ -1076,7 +1076,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
       <div class="field"><label>New employer</label><input data-key="newEmployer" value="Peekaboo Pvt Ltd"></div>
       <div class="grid2">
         <div class="field"><label>New employer registration</label><input data-key="regNo" value="C0709/2013"></div>
-        <div class="field"><label>New employer phone</label><input data-key="newPhone" value="+960 7997772"></div>
+        <div class="field"><label>New employer phone</label><input data-key="newPhone" value=""></div>
       </div>
       <div class="field"><label>New employer address</label><input data-key="newAddress" value="V, Funna (Villimale), Maldives"></div>
     </section>
@@ -1085,7 +1085,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
       <div class="section-title"><span class="dot"></span>Letter wording</div>
       <div class="field">
         <label>Paragraph 1</label>
-        <textarea data-key="p1">This is to confirm that Ms. Goma Karki, Passport No. PA3844769, is currently employed under Cafe' White Saffron.</textarea>
+        <textarea data-key="p1">This is to confirm that Ms. Jenisha Adhikari, Passport No. 11870474, is currently employed under Cafe' White Saffron.</textarea>
       </div>
       <div class="field">
         <label>Paragraph 2</label>
@@ -1775,6 +1775,34 @@ function load() {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) {}
   const data = saved || defaults;
+
+  // One-time migration from the previous Goma/RM transfer draft to Jenisha/Peekaboo.
+  const legacyGoma = /GOMA\s+KARKI/i.test(data.employee || "") || /PA3844769/i.test(data.passport || "");
+  if (legacyGoma) {
+    Object.assign(data, {
+      date: "22 September 2026",
+      subject: "Employee Transfer – Jenisha Adhikari",
+      employee: "JENISHA ADHIKARI",
+      passport: "11870474",
+      nationality: "Nepalese",
+      employeeDob: "13 March 2003",
+      employeePhone: "+960 799 1303",
+      currentEmployer: "Cafe' White Saffron",
+      newEmployer: "Peekaboo Pvt Ltd",
+      regNo: "C0709/2013",
+      newPhone: "",
+      newAddress: "V, Funna (Villimale), Maldives",
+      p1: "This is to confirm that Ms. Jenisha Adhikari, Passport No. 11870474, is currently employed under Cafe' White Saffron.",
+      p2: "Cafe' White Saffron has no objection to the transfer of her employment and work permit to Peekaboo Pvt Ltd (C0709/2013). We hereby give our consent for the employer change, subject to the approval and requirements of the relevant authorities of the Republic of Maldives.",
+      p3: "We kindly request the relevant authorities to process the necessary employer change and update the employee’s work permit and employment records accordingly."
+    });
+  } else {
+    if (/RM\s+INVESTMENT/i.test(data.newEmployer || "")) data.newEmployer = "Peekaboo Pvt Ltd";
+    if (/SP-3016\/2015/i.test(data.regNo || "")) data.regNo = "C0709/2013";
+    if (/7997772/.test(data.newPhone || "")) data.newPhone = "";
+    if (/Rah\s+Dhebai\s+Magu/i.test(data.newAddress || "")) data.newAddress = "V, Funna (Villimale), Maldives";
+  }
+
   document.querySelectorAll("[data-key]").forEach(el => {
     if (Object.prototype.hasOwnProperty.call(data, el.dataset.key)) el.value = data[el.dataset.key];
   });
