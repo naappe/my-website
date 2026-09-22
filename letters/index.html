@@ -6,6 +6,8 @@
 <title>Cafe' White Saffron - Employee Transfer Letter</title>
 <meta name="theme-color" content="#b97712">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --bg:#f3f4f6;
@@ -1206,7 +1208,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
     <button class="btn-ghost" id="todayBtn">Use Today</button>
     <button class="btn-secondary" id="saveDocBtn">Save Document</button>
     <button class="btn-ghost" id="resetBtn">Reset</button>
-    <button class="btn-secondary" id="printBtn">Print / Save PDF</button>
+    <button class="btn-secondary" id="printBtn">Save PDF</button>
     <button class="btn-primary" id="pdfBtn">Download Current PDF</button>
   </div>
 </header>
@@ -2040,7 +2042,10 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   showToast("Reset complete");
 });
 
-document.getElementById("printBtn").addEventListener("click", () => window.print());
+document.getElementById("printBtn").addEventListener("click", () => {
+  const pdfBtn = document.getElementById("pdfBtn");
+  if (pdfBtn) pdfBtn.click();
+});
 
 document.getElementById("pdfBtn").addEventListener("click", async () => {
   sync();
