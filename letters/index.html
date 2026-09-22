@@ -1100,6 +1100,89 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
   font-size:9px !important;
 }
 
+
+
+/* Final print normalization — one clean A4 page, no browser-layout overflow */
+@page{
+  size:A4 portrait;
+  margin:0;
+}
+@media print{
+  html,body{
+    width:210mm !important;
+    height:297mm !important;
+    margin:0 !important;
+    padding:0 !important;
+    background:#fff !important;
+    overflow:hidden !important;
+  }
+
+  .appbar,
+  .workspace-main-nav,
+  .editor,
+  .preview-nav,
+  .preview-top,
+  .toast{
+    display:none !important;
+  }
+
+  .workspace,
+  .preview-wrap,
+  .preview-shell,
+  #pdfDocument{
+    display:block !important;
+    width:210mm !important;
+    height:297mm !important;
+    min-height:0 !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    transform:none !important;
+  }
+
+  #pdfDocument .preview-page{
+    display:none !important;
+    width:210mm !important;
+    height:297mm !important;
+    margin:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+  }
+
+  #pdfDocument .preview-page.active{
+    display:block !important;
+  }
+
+  #pdfDocument .preview-page.active > .a4-page{
+    box-sizing:border-box !important;
+    width:210mm !important;
+    height:297mm !important;
+    min-height:297mm !important;
+    max-height:297mm !important;
+    margin:0 !important;
+    padding:7mm 15mm 9mm !important;
+    box-shadow:none !important;
+    border:0 !important;
+    overflow:hidden !important;
+    transform:none !important;
+    page-break-before:avoid !important;
+    page-break-after:avoid !important;
+    break-before:avoid-page !important;
+    break-after:avoid-page !important;
+  }
+
+  #pdfDocument .preview-page[data-preview-page="transfer"].active #a4{
+    padding-top:7mm !important;
+  }
+
+  #pdfDocument .preview-page.active .letter-footer{
+    left:15mm !important;
+    right:15mm !important;
+    bottom:7mm !important;
+  }
+}
+
 </style>
 </head>
 <body>
