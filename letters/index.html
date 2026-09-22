@@ -1052,7 +1052,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
         </div>
         <div class="field">
           <label>Subject</label>
-          <input data-key="subject" value="Employee Transfer – Jenisha Adhikari">
+          <input data-key="subject" value="Employer Consent / No Objection Letter for Work Permit Transfer – Jenisha Adhikari">
         </div>
       </div>
     </section>
@@ -1068,6 +1068,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
         <div class="field"><label>Date of Birth</label><input data-key="employeeDob" value="13 March 2003"></div>
         <div class="field"><label>Contact No.</label><input data-key="employeePhone" value="+960 799 1303"></div>
       </div>
+      <div class="field"><label>Work Permit No.</label><input data-key="workPermit" value="WP00778354"></div>
     </section>
 
     <section class="section">
@@ -1088,15 +1089,15 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
       <div class="section-title"><span class="dot"></span>Letter wording</div>
       <div class="field">
         <label>Paragraph 1</label>
-        <textarea data-key="p1">This is to confirm that Ms. Jenisha Adhikari, Passport No. 11870474, is currently employed under Cafe' White Saffron.</textarea>
+        <textarea data-key="p1">This is to confirm that Ms. Jenisha Adhikari, Passport No. 11870474, Work Permit No. WP00778354, is currently employed under Cafe' White Saffron.</textarea>
       </div>
       <div class="field">
         <label>Paragraph 2</label>
-        <textarea data-key="p2">Cafe' White Saffron has no objection to the transfer of her employment and work permit to Peekaboo Pvt Ltd (C0709/2013). We hereby give our consent for the employer change, subject to the approval and requirements of the relevant authorities of the Republic of Maldives.</textarea>
+        <textarea data-key="p2">Cafe' White Saffron hereby gives its full consent and has no objection to the transfer of Ms. Jenisha Adhikari's employment and Work Permit No. WP00778354 to Peekaboo Pvt Ltd (C0709/2013), subject to the approval and requirements of the relevant authorities of the Republic of Maldives.</textarea>
       </div>
       <div class="field">
         <label>Paragraph 3</label>
-        <textarea data-key="p3">We kindly request the relevant authorities to process the necessary employer change and update the employee’s work permit and employment records accordingly.</textarea>
+        <textarea data-key="p3">We kindly request the relevant authorities to process the employer change and update the employee's work permit and employment records accordingly.</textarea>
       </div>
     </section>
 
@@ -1376,7 +1377,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
           </div>
           <div class="info-item">
             <div class="info-label">Passport No.</div>
-            <div class="info-value" data-out="passport"></div>
+            <div class="info-value"><span data-out="passport"></span><br><span style="font-size:9px;font-weight:600;color:#666">Work Permit: <span data-out="workPermit"></span></span></div>
           </div>
           <div class="info-item">
             <div class="info-label">Nationality</div>
@@ -1784,19 +1785,23 @@ function load() {
 
   // Keep current employer registration available in old saved browser drafts.
   if (!data.currentReg) data.currentReg = "SP10462024";
-  if (/Goma\s+Karki/i.test(data.subject || "")) data.subject = "Employee Transfer – Jenisha Adhikari";
+  if (!data.workPermit) data.workPermit = "WP00778354";
+  if (/Goma\s+Karki/i.test(data.subject || "") || /^Employee Transfer\s*[–-]\s*Jenisha Adhikari$/i.test(data.subject || "")) {
+    data.subject = "Employer Consent / No Objection Letter for Work Permit Transfer – Jenisha Adhikari";
+  }
 
   // One-time migration from the previous Goma/RM transfer draft to Jenisha/Peekaboo.
   const legacyGoma = /GOMA\s+KARKI/i.test(data.employee || "") || /PA3844769/i.test(data.passport || "");
   if (legacyGoma) {
     Object.assign(data, {
       date: "22 September 2026",
-      subject: "Employee Transfer – Jenisha Adhikari",
+      subject: "Employer Consent / No Objection Letter for Work Permit Transfer – Jenisha Adhikari",
       employee: "JENISHA ADHIKARI",
       passport: "11870474",
       nationality: "Nepalese",
       employeeDob: "13 March 2003",
       employeePhone: "+960 799 1303",
+      workPermit: "WP00778354",
       currentEmployer: "Cafe' White Saffron",
       currentReg: "SP10462024",
       newEmployer: "Peekaboo Pvt Ltd",
@@ -2087,7 +2092,7 @@ function ensureReferenceForCurrent(){
 function validateCurrentPage(){
   const page=currentPageName();
   const rules = {
-    transfer:[["employee","Employee name"],["passport","Passport number"],["newEmployer","New employer"],["date","Date"],["subject","Subject"]],
+    transfer:[["employee","Employee name"],["passport","Passport number"],["workPermit","Work permit number"],["newEmployer","New employer"],["date","Date"],["subject","Subject"]],
     appointment:[["employee","Employee name"],["passport","Passport number"],["apptEmployer","Employer"],["jobTitle","Occupation"]],
     dhivehi:[["dvDate","Date"],["dvRecipient","Recipient"],["dvSubject","Subject"],["dvBody","Letter body"]],
     english:[["enDate","Date"],["enRecipientName","Recipient"],["enSubject","Subject"],["enP1","Opening paragraph"]]
@@ -2261,16 +2266,18 @@ function restoreSavedDocumentEditingState(){
 function standardTransferWording(){
   const employee=fieldValue("employee")||"the employee";
   const passport=fieldValue("passport");
+  const workPermit=fieldValue("workPermit");
   const currentEmployer=fieldValue("currentEmployer")||"Cafe' White Saffron";
   const newEmployer=fieldValue("newEmployer")||"the new employer";
   const registration=fieldValue("regNo");
   const destination=registration ? `${newEmployer} (${registration})` : newEmployer;
+  const idText=[passport ? `Passport No. ${passport}` : "", workPermit ? `Work Permit No. ${workPermit}` : ""].filter(Boolean).join(", ");
   return {
-    p1:passport
-      ? `This is to confirm that ${employee}, Passport No. ${passport}, is currently employed under ${currentEmployer}.`
+    p1:idText
+      ? `This is to confirm that ${employee}, ${idText}, is currently employed under ${currentEmployer}.`
       : `This is to confirm that ${employee} is currently employed under ${currentEmployer}.`,
-    p2:`${currentEmployer} has no objection to the transfer of the above-mentioned employee's employment and work permit to ${destination}. We hereby give our consent for the employer change, subject to the approval and requirements of the relevant authorities of the Republic of Maldives.`,
-    p3:"We kindly request the relevant authorities to process the necessary employer change and update the employee’s work permit and employment records accordingly."
+    p2:`${currentEmployer} hereby gives its full consent and has no objection to the transfer of ${employee}'s employment${workPermit ? ` and Work Permit No. ${workPermit}` : " and work permit"} to ${destination}, subject to the approval and requirements of the relevant authorities of the Republic of Maldives.`,
+    p3:"We kindly request the relevant authorities to process the employer change and update the employee's work permit and employment records accordingly."
   };
 }
 function applyStandardTransferWording(enableAuto=true,announce=true){
@@ -2316,7 +2323,7 @@ function startNewTransferLetter(){
   if(activeSavedDocumentId && !confirm("Start a new transfer letter? Save any changes first if you want to keep them.")) return;
   setActiveSavedDocumentId("");
   setDocumentPage("transfer");
-  ["employee","passport","nationality","employeeDob","employeePhone","newEmployer","regNo","newPhone","newAddress"].forEach(key=>{
+  ["employee","passport","nationality","employeeDob","employeePhone","workPermit","newEmployer","regNo","newPhone","newAddress"].forEach(key=>{
     const el=document.querySelector(`[data-key="${key}"]`);
     if(el) el.value="";
   });
@@ -2325,7 +2332,7 @@ function startNewTransferLetter(){
   const currentReg=document.querySelector('[data-key="currentReg"]');
   if(currentReg && !currentReg.value.trim()) currentReg.value="SP10462024";
   const subject=document.querySelector('[data-key="subject"]');
-  if(subject) subject.value="Employee Transfer Letter";
+  if(subject) subject.value="Employer Consent / No Objection Letter for Work Permit Transfer";
   const date=document.querySelector('[data-key="date"]');
   if(date){
     date.value=new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"}).replace(/^0/,"");
@@ -2342,7 +2349,7 @@ function startNewTransferLetter(){
   showToast("New transfer letter ready");
 }
 
-["employee","passport","currentEmployer","currentReg","newEmployer","regNo"].forEach(key=>{
+["employee","passport","workPermit","currentEmployer","currentReg","newEmployer","regNo"].forEach(key=>{
   const el=document.querySelector(`[data-key="${key}"]`);
   if(el) el.addEventListener("input",()=>{
     if(autoTransferWording) applyStandardTransferWording(true,false);
