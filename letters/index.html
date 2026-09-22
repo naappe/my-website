@@ -1072,7 +1072,10 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
 
     <section class="section">
       <div class="section-title"><span class="dot"></span>White Saffron Employer Change</div>
-      <div class="field"><label>Current employer</label><input data-key="currentEmployer" value="Cafe' White Saffron"></div>
+      <div class="grid2">
+        <div class="field"><label>Current employer</label><input data-key="currentEmployer" value="Cafe' White Saffron"></div>
+        <div class="field"><label>Current employer registration</label><input data-key="currentReg" value="SP10462024"></div>
+      </div>
       <div class="field"><label>New employer</label><input data-key="newEmployer" value="Peekaboo Pvt Ltd"></div>
       <div class="grid2">
         <div class="field"><label>New employer registration</label><input data-key="regNo" value="C0709/2013"></div>
@@ -1381,7 +1384,7 @@ textarea{min-height:82px;resize:vertical;line-height:1.45}
           </div>
           <div class="info-item">
             <div class="info-label">Current Employer</div>
-            <div class="info-value" data-out="currentEmployer"></div>
+            <div class="info-value"><span data-out="currentEmployer"></span><br><span style="font-size:9px;font-weight:600;color:#666">Reg. No.: <span data-out="currentReg"></span></span></div>
           </div>
           <div class="info-item">
             <div class="info-label">New Employer</div>
@@ -1776,6 +1779,10 @@ function load() {
   try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) {}
   const data = saved || defaults;
 
+  // Keep current employer registration available in old saved browser drafts.
+  if (!data.currentReg) data.currentReg = "SP10462024";
+  if (/Goma\s+Karki/i.test(data.subject || "")) data.subject = "Employee Transfer – Jenisha Adhikari";
+
   // One-time migration from the previous Goma/RM transfer draft to Jenisha/Peekaboo.
   const legacyGoma = /GOMA\s+KARKI/i.test(data.employee || "") || /PA3844769/i.test(data.passport || "");
   if (legacyGoma) {
@@ -1788,6 +1795,7 @@ function load() {
       employeeDob: "13 March 2003",
       employeePhone: "+960 799 1303",
       currentEmployer: "Cafe' White Saffron",
+      currentReg: "SP10462024",
       newEmployer: "Peekaboo Pvt Ltd",
       regNo: "C0709/2013",
       newPhone: "",
@@ -2311,6 +2319,8 @@ function startNewTransferLetter(){
   });
   const currentEmployer=document.querySelector('[data-key="currentEmployer"]');
   if(currentEmployer && !currentEmployer.value.trim()) currentEmployer.value="Cafe' White Saffron";
+  const currentReg=document.querySelector('[data-key="currentReg"]');
+  if(currentReg && !currentReg.value.trim()) currentReg.value="SP10462024";
   const subject=document.querySelector('[data-key="subject"]');
   if(subject) subject.value="Employee Transfer Letter";
   const date=document.querySelector('[data-key="date"]');
@@ -2329,7 +2339,7 @@ function startNewTransferLetter(){
   showToast("New transfer letter ready");
 }
 
-["employee","passport","currentEmployer","newEmployer","regNo"].forEach(key=>{
+["employee","passport","currentEmployer","currentReg","newEmployer","regNo"].forEach(key=>{
   const el=document.querySelector(`[data-key="${key}"]`);
   if(el) el.addEventListener("input",()=>{
     if(autoTransferWording) applyStandardTransferWording(true,false);
