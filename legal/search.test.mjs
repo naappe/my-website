@@ -15,3 +15,5 @@ test('all original PDF links resolve to packaged files',()=>{for(const s of data
 test('real English search retrieves article 48',()=>assert.ok(search(data.rows,data.sources,{query:'Article 48',source:1}).some(r=>r.label==='Article 48')));
 test('real Dhivehi source is searchable',()=>assert.ok(search(data.rows,data.sources,{query:'ޤާނޫނު',source:4}).length>0));
 test('comparison source remains opt in',()=>assert.equal(search(data.rows,data.sources,{source:2}).length,0));
+test('exact article lookup does not match 148 or incidental references',()=>assert.deepEqual(search(data.rows,data.sources,{query:'Article 48',source:1}).map(r=>r.label),['Article 48']));
+test('native portal clauses rank ahead of unreviewed PDF extraction',()=>assert.equal(search(data.rows,data.sources,{query:'ޤާނޫނު'})[0].source,4));

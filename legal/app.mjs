@@ -1,4 +1,4 @@
-import {search} from './search.mjs';
+import {search} from './search.mjs?v=2';
 const $=id=>document.getElementById(id);
 const labels={historical:'Historical translation',comparison:'Comparison only',draft:'Draft · do not cite',official_portal:'Official portal · review pending',unreviewed:'PDF text · unreviewed',amendment:'Amendment only'};
 let data,found=[],shown=0;
