@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { search, eligible } from './search.mjs';
+const sources=[{id:1,status:'historical',title:'Constitution'},{id:3,status:'draft',title:'Draft'},{id:4,status:'official_portal',title:'Civil Procedure'}];
+const rows=[{source:1,label:'Article 48',text:'Everyone has rights on arrest and detention.'},{source:3,label:'Rule 1',text:'arrest'},{source:4,label:'95 > (ށ)',text:'ޤާނޫނު މަދަނީ'}];
+test('draft content is never eligible',()=>assert.equal(eligible(sources[1],true),false));
+test('search returns evidence and excludes draft',()=>assert.deepEqual(search(rows,sources,{query:'arrest'}).map(x=>x.source),[1]));
+test('Dhivehi search preserves combining vowels',()=>assert.equal(search(rows,sources,{query:'ޤާނޫނު'})[0].source,4));
+test('source filter and all-word query',()=>assert.equal(search(rows,sources,{query:'arrest missing',source:1}).length,0));
+test('empty query allows browsing a selected source',()=>assert.equal(search(rows,sources,{query:'',source:4}).length,1));
+import {readFileSync,existsSync} from 'node:fs';
+const data=JSON.parse(readFileSync(new URL('./data.json',import.meta.url)));
+test('published collection excludes all draft text',()=>assert.equal(data.rows.some(r=>r.source===3),false));
+test('all original PDF links resolve to packaged files',()=>{for(const s of data.sources){if(s.pdf)assert.ok(existsSync(new URL(s.pdf,import.meta.url)),s.title);}});
+test('real English search retrieves article 48',()=>assert.ok(search(data.rows,data.sources,{query:'Article 48',source:1}).some(r=>r.label==='Article 48')));
+test('real Dhivehi source is searchable',()=>assert.ok(search(data.rows,data.sources,{query:'ޤާނޫނު',source:4}).length>0));
+test('comparison source remains opt in',()=>assert.equal(search(data.rows,data.sources,{source:2}).length,0));
